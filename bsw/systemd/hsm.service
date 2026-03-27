@@ -1,0 +1,18 @@
+# pki-hsm.service
+[Unit]
+Description=PKI Box HSM Service
+After=pki-box.service
+
+[Service]
+Type=simple  
+SELinuxContext=system_u:system_r:pki_hsm_t:s0
+ExecStart=/usr/bin/pki-hsm --isolated
+Restart=on-failure
+RestartSec=10s
+NoNewPrivileges=yes
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+
+[Install]
+WantedBy=pki-box.service

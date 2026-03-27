@@ -1,0 +1,41 @@
+#
+# SELinux Policy Module
+# pki-box/selinux/pki-box.te
+#
+policy_module(pki_box, 1.0)
+
+# Типы процессов
+type pki_core_t;
+type pki_core_exec_t;
+type pki_hsm_t; 
+type pki_hsm_exec_t;
+type pki_var_t;
+type pki_log_t;
+
+# Роли
+role pki_r types { pki_core_t, pki_hsm_t };
+
+# Атрибуты
+application_domain(pki_core_t, pki_core_exec_t)
+application_domain(pki_hsm_t, pki_hsm_exec_t)
+
+# Разрешения для PKI Core
+allow pki_core_t pki_hsm_t:unix_stream_socket connectto;
+allow pki_core_t pki_hsm_t:process signal;
+allow pki_core_t pki_var_t:file { read write create };
+allow pki_core_t pki_log_t:file { append create };
+
+# Разрешения для HSM
+allow pki_hsm_t pki_var_t:dir search;
+allow pki_hsm_t pki_var_t:file { read write lock };
+allow pki_hsm_t self:capability { chown dac_override };
+allow pki_hsm_t pki_log_t:file { append create };
+
+# Запреты - HSM не может запускать процессы
+neverallow pki_hsm_t self:process { transition };
+neverallow pki_hsm_t pki_core_t:process { noatsecure siginh };
+
+# Доступ к сети только для PKI Core
+allow pki_core_t self:tcp_socket create_socket_perms;
+allow pki_core_t port_t:tcp_socket name_bind;
+neverallow pki_hsm_t netif_t:netif { egress ingress };

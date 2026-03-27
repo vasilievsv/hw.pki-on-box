@@ -1,0 +1,16 @@
+# Interface Definitions
+# pki-box/selinux/pki-box.if
+
+interface(`pki_domtrans',`
+    domain_auto_trans($1, pki_core_exec_t, pki_core_t)
+    domain_auto_trans($1, pki_hsm_exec_t, pki_hsm_t)
+')
+
+interface(`pki_read_config',`
+    allow $1 pki_config_t:file read_file_perms;
+')
+
+interface(`pki_manage_storage',`
+    allow $1 pki_var_t:dir rw_dir_perms;
+    allow $1 pki_var_t:file create_file_perms;
+')

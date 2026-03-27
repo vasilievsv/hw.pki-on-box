@@ -1,0 +1,6 @@
+cryptography>=3.4
+flask>=2.0
+requests>=2.25
+click>=8.0
+python-dotenv>=0.19
+pyopenssl>=21.0

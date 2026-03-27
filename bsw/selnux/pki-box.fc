@@ -1,0 +1,7 @@
+# File Contexts
+
+/usr/bin/pki-core    --  system_u:object_r:pki_core_exec_t:s0
+/usr/bin/pki-hsm     --  system_u:object_r:pki_hsm_exec_t:s0 
+/var/lib/pki-box(/.*)?   system_u:object_r:pki_var_t:s0
+/var/log/pki-box(/.*)?   system_u:object_r:pki_log_t:s0
+/etc/pki-box(/.*)?       system_u:object_r:pki_config_t:s0

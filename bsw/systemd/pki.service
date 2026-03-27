@@ -1,0 +1,16 @@
+# pki-box.service
+[Unit]
+Description=PKI Box Core Service
+After=network.target
+Wants=pki-hsm.service
+
+[Service]
+Type=notify
+SELinuxContext=system_u:system_r:pki_core_t:s0
+ExecStart=/usr/bin/pki-core --daemon
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
