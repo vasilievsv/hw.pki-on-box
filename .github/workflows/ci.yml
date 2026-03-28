@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -42,4 +45,5 @@ jobs:
       - name: Run tests
         env:
           PKI_TRNG_MODE: software
+          PYTHONPATH: asw/PKI
         run: pytest asw/PKI/tests/ -v --tb=short
