@@ -1,0 +1,19 @@
+trng:
+  mode: hardware          # hardware | software  (PKI_TRNG_MODE=software для CI)
+  hid_vid: "0x0483"       # STM32 USB VID        (PKI_HID_VID)
+  hid_pid: "0x5750"       # STM32 USB PID        (PKI_HID_PID)
+  device: /dev/random     # fallback device
+
+drbg:
+  algorithm: hmac-sha256  # hmac-sha256 | ctr-aes256
+  reseed_interval: 1000   # reseed after N generate calls
+  personalization: ""     # optional personalization string
+
+crypto:
+  rsa_key_size: 4096
+  ec_curve: P-384
+  aes_key_size: 256
+
+storage:
+  path: asw/PKI/storage   # (PKI_STORAGE_PATH)
+  backend: file           # file | hsm
