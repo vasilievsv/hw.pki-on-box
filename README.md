@@ -1,18 +1,50 @@
 # hw.pki-on-box
 
+> ⚠️ **Учебный проект** — исследование PKI, TRNG и безопасности ядра Linux. Не предназначен для production использования без независимого аудита безопасности.
+
 **Учебный проект**: PKI сервер + менеджер ключей на базе Radxa Zero (Linux) + STM32H750VBT6 (TRNG via USB HID).
 
 ---
 
 ## Архитектура
 
-```
-STM32H750VBT6 (HMI)          Radxa Zero (SBC)
-  USB HID TRNG стример  →    Python PKI daemon
-  (firmware/hmi/)             (asw/PKI/)
-                                   ↓
-                         SELinux + eBPF изоляция
-                              (bsw/)
+```mermaid
+graph TB
+    subgraph HMI["firmware/hmi (STM32H750VBT6)"]
+        TRNG_HW[Аппаратный RNG]
+        USB_HID[USB HID стример]
+        TRNG_HW --> USB_HID
+    end
+
+    subgraph SBC["Radxa Zero (Linux)"]
+        subgraph ASW["asw/PKI (Python daemon)"]
+            TRNG[core/trng.py]
+            DRBG[core/drbg.py]
+            CRYPTO[core/crypto_engine.py]
+            KEYS[core/key_storage.py]
+            CA[services/ca_service.py]
+            CERT[services/certificate_service.py]
+            API[api/ REST+CLI]
+            TRNG --> DRBG --> CRYPTO --> CA --> CERT --> API
+            CRYPTO --> KEYS
+        end
+
+        subgraph BSW["bsw/ (ядро Linux)"]
+            SELINUX[SELinux политики]
+            EBPF[eBPF фильтры]
+        end
+
+        ASW -.изолирован.-> BSW
+    end
+
+    subgraph STORAGE["/var/lib/pki (не в репо)"]
+        CA_KEYS[ca/ ключи]
+        DB[(pki.db)]
+    end
+
+    USB_HID -->|энтропия| TRNG
+    KEYS --> CA_KEYS
+    CA --> DB
 ```
 
 ## Структура проекта
