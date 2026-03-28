@@ -5,15 +5,21 @@ from cryptography.hazmat.primitives import hashes
 
 from core.crypto_engine import CryptoEngine
 from core.key_storage import KeyStorage
+from storage.database import PKIDatabase
 
 
 class CertificateAuthorityService:
-    def __init__(self, crypto: CryptoEngine, storage: KeyStorage, cfg: dict = None):
+    def __init__(self, crypto: CryptoEngine, storage: KeyStorage, db: PKIDatabase, cfg: dict = None):
         self.crypto = crypto
         self.storage = storage
+        self._db = db
         cfg = cfg or {}
         self._ca_key_password = cfg.get("storage", {}).get("ca_key_password", "pki-ca-key")
         self._certs: dict[str, x509.Certificate] = {}
+        for row in self._db.list_ca_certs():
+            cert = self._db.load_ca_cert(row["id"])
+            if cert:
+                self._certs[row["id"]] = cert
 
     def _ca_id(self, name: str) -> str:
         return f"ca_{name.lower().replace(' ', '_')}"
@@ -58,6 +64,7 @@ class CertificateAuthorityService:
         ca_id = self._ca_id(name)
         self.storage.store_key(ca_id, private_key, self._ca_key_password)
         self._certs[ca_id] = cert
+        self._db.store_ca_cert(ca_id, name, cert)
         return cert
 
     def create_intermediate_ca(self, name: str, parent_ca_id: str, validity_years: int = 10) -> x509.Certificate:
@@ -71,6 +78,7 @@ class CertificateAuthorityService:
         ca_id = self._ca_id(name)
         self.storage.store_key(ca_id, private_key, self._ca_key_password)
         self._certs[ca_id] = cert
+        self._db.store_ca_cert(ca_id, name, cert)
         return cert
 
     def get_ca_cert(self, ca_id: str) -> x509.Certificate:
