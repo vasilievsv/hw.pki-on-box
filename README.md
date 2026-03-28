@@ -12,8 +12,25 @@
 - использует STM32H750 как аппаратный источник энтропии (USB HID)
 - проводит Root CA ceremony с аппаратным TRNG
 - выпускает X.509 сертификаты для клиентов (hw.canfd-adapter, hw.servo-drive) по REST API
-- изолирует PKI процесс через SELinux + eBPF
+- изолирует PKI процесс через SELinux + eBPF *(planned)*
 - соответствует ISO 26262 ASIL A (учебный уровень)
+
+---
+
+## Статус реализации
+
+| Компонент | Статус | Сессия |
+|-----------|--------|--------|
+| core: TRNG/DRBG/CryptoEngine/KeyStorage | ✅ done | SESSION_4 |
+| services: CA/Cert/CRL/OCSP | ✅ done | SESSION_6 |
+| storage: SQLite + FileStorage | ✅ done | SESSION_7 |
+| REST API (Flask) | ✅ done | SESSION_9 |
+| CLI (Click) | ✅ done | SESSION_10 |
+| Integration tests (pytest) | ✅ done | SESSION_11 |
+| GitHub Actions CI/CD | 📋 planned | SESSION_12 |
+| SELinux + eBPF | 📋 planned | — |
+| Buildroot image | 📋 planned | — |
+| STM32H750 firmware (TRNG HID) | 📋 planned | — |
 
 ---
 
@@ -40,7 +57,7 @@ graph TB
             KEYS --> CA
         end
 
-        subgraph BSW["bsw/ · ядро Linux"]
+        subgraph BSW["bsw/ · ядро Linux (planned)"]
             SELINUX[SELinux]
             EBPF[eBPF]
         end
@@ -61,28 +78,157 @@ graph TB
 
 ```
 hw.pki-on-box/
+├── .github/workflows/     ← CI/CD (planned)
 ├── firmware/
-│   └── hmi/           ← STM32H750VBT6: TRNG стример (USB HID)
+│   └── hmi/               ← STM32H750VBT6: TRNG стример (USB HID)
 ├── asw/
-│   ├── PKI/           ← Python PKI daemon
-│   │   ├── core/      ← trng, drbg, crypto_engine, key_storage
-│   │   ├── services/  ← ca, certificate, crl, ocsp
-│   │   ├── storage/   ← database, file_storage, master_root_ca
-│   │   ├── security/  ← security_manager (SELinux + eBPF)
-│   │   └── api/       ← REST API, CLI
-│   └── sandbox/       ← исследовательский код (TRNG/DRBG прототипы)
+│   └── PKI/               ← Python PKI daemon
+│       ├── core/          ← trng, drbg, crypto_engine, key_storage
+│       ├── services/      ← ca, certificate, crl, ocsp
+│       ├── storage/       ← database, file_storage
+│       ├── security/      ← security_manager (planned)
+│       ├── api/           ← rest_api.py, cli.py
+│       ├── tests/         ← pytest integration tests
+│       ├── serve.py       ← REST API entrypoint
+│       ├── pki.py         ← CLI entrypoint
+│       ├── requirements.txt
+│       └── requirements-dev.txt
 ├── bsw/
-│   ├── ebpf/          ← network_filter, syscall_filter
-│   ├── selnux/        ← SELinux политики
-│   └── systemd/       ← pki.service, hsm.service
-├── enclosure/         ← физическая сборка
-│   └── pcb/           ← схема Radxa Zero + STM32H750
-├── image/             ← Buildroot образ для Radxa Zero
+│   ├── ebpf/              ← network_filter, syscall_filter (planned)
+│   ├── selnux/            ← SELinux политики (planned)
+│   └── systemd/           ← pki.service, hsm.service
+├── enclosure/             ← физическая сборка
+├── image/                 ← Buildroot образ для Radxa Zero
+├── pytest.ini
 └── docs/
-
 ```
 
-## Безопасность ядра
+---
+
+## Быстрый старт
+
+```bash
+# Зависимости
+pip install -r asw/PKI/requirements.txt
+
+# Запуск REST API (порт 5000)
+cd asw/PKI
+python serve.py
+
+# Запуск с software TRNG (без USB HID)
+PKI_TRNG_MODE=software python serve.py
+```
+
+---
+
+## REST API
+
+Base URL: `http://localhost:5000/api/v1`
+
+```bash
+# Создать Root CA
+curl -X POST /api/v1/ca/root \
+  -H "Content-Type: application/json" \
+  -d '{"name": "My Root CA", "validity_years": 20}'
+# → {"ca_id": "ca_my_root_ca", "cert_pem": "-----BEGIN CERTIFICATE-----..."}
+
+# Выпустить серверный сертификат
+curl -X POST /api/v1/certs/server \
+  -d '{"common_name": "device.local", "san_dns": ["device.local"], "ca_id": "ca_my_root_ca"}'
+# → {"serial": "...", "cert_pem": "...", "key_pem": "..."}
+
+# Список CA
+curl /api/v1/ca
+
+# Отозвать сертификат
+curl -X POST /api/v1/crl/revoke \
+  -d '{"serial": "<hex>", "ca_id": "ca_my_root_ca"}'
+
+# Получить CRL
+curl /api/v1/crl/ca_my_root_ca
+
+# Проверить статус (OCSP)
+curl /api/v1/ocsp/<serial_hex>
+```
+
+---
+
+## CLI
+
+```bash
+cd asw/PKI
+
+# Создать Root CA
+python pki.py ca create-root --name "My Root CA"
+
+# Создать Intermediate CA
+python pki.py ca create-intermediate --name "Devices CA" --parent ca_my_root_ca
+
+# Список CA
+python pki.py ca list
+
+# Выпустить серверный сертификат
+python pki.py cert issue-server --cn device.local --san device.local --ca ca_my_root_ca --out ./certs
+
+# Выпустить клиентский сертификат
+python pki.py cert issue-client --user device-001 --ca ca_my_root_ca --out ./certs
+
+# Выпустить firmware сертификат
+python pki.py cert issue-firmware --device stm32-001 --ca ca_my_root_ca --out ./certs
+
+# Отозвать сертификат
+python pki.py crl revoke --serial <hex> --ca ca_my_root_ca --reason key_compromise
+
+# Сгенерировать CRL
+python pki.py crl generate --ca ca_my_root_ca --out crl.pem
+
+# Проверить статус сертификата
+python pki.py crl check --serial <hex>
+```
+
+---
+
+## Тестирование
+
+```bash
+# Установить dev-зависимости
+pip install -r asw/PKI/requirements-dev.txt
+
+# Запустить все тесты
+PKI_TRNG_MODE=software pytest asw/PKI/tests/ -v
+
+# Результат: 21 passed
+```
+
+Покрытие тестами:
+
+| Файл | Что тестирует |
+|------|---------------|
+| `tests/conftest.py` | фикстуры: cfg, services, root_ca, flask client |
+| `tests/test_core.py` | TRNG, DRBG, RSA/EC sign-verify, KeyStorage |
+| `tests/test_services.py` | CA/Cert/CRL/OCSP, DB persistence, FileStorage |
+| `tests/test_api.py` | все REST endpoints |
+
+---
+
+## Конфигурация
+
+Пример конфига: `asw/PKI/config.example.yaml`
+
+Переменные окружения:
+
+| Переменная | По умолчанию | Описание |
+|------------|-------------|----------|
+| `PKI_TRNG_MODE` | `auto` | `auto` / `hardware` / `software` |
+| `PKI_STORAGE_PATH` | `asw/PKI/storage/keys` | путь к хранилищу ключей |
+| `PKI_DB_PATH` | `asw/PKI/storage/pki.db` | путь к SQLite БД |
+| `PKI_CERTS_PATH` | `asw/PKI/storage/certs` | путь к файлам сертификатов |
+
+> Хранилище **не хранится в репозитории** — инициализируется при первом запуске.
+
+---
+
+## Безопасность ядра *(planned)*
 
 ```mermaid
 graph TB
@@ -104,28 +250,7 @@ graph TB
     PKI --> SYS
 ```
 
-## Инициализация хранилища
-
-Хранилище **не хранится в репозитории** — инициализируется при первом запуске:
-
-```bash
-python -m asw.PKI.main init --storage-path /var/lib/pki
-```
-
-## Диагностика
-
-```bash
-# SELinux контексты
-ps -eZ | grep pki
-ls -Z /var/lib/pki/
-
-# eBPF программы
-bpftool prog show
-bpftool map show
-
-# Аудит
-ausearch -m avc -ts recent
-```
+---
 
 ## Стандарты
 
