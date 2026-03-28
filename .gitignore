@@ -13,6 +13,11 @@ asw/PKI/ca/
 asw/PKI/certs/
 asw/PKI/storage/keys/
 asw/PKI/storage/ca/
+asw/PKI/config.yaml
+asw/PKI/storage/data/
+
+# Хранилище PKI на целевой системе (если вдруг окажется в дереве)
+var/
 
 # Python
 __pycache__/
