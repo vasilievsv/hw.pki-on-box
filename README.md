@@ -27,10 +27,14 @@
 | REST API (Flask) | ✅ done | SESSION_9 |
 | CLI (Click) | ✅ done | SESSION_10 |
 | Integration tests (pytest) | ✅ done | SESSION_11 |
-| GitHub Actions CI/CD | 📋 planned | SESSION_12 |
-| SELinux + eBPF | 📋 planned | — |
-| Buildroot image | 📋 planned | — |
-| STM32H750 firmware (TRNG HID) | 📋 planned | — |
+| GitHub Actions CI/CD | ✅ done | SESSION_12 |
+| STM32G474 firmware (TRNG USB HID) | ✅ done | SESSION_14 |
+| Hardware TRNG интеграция (core/trng.py) | ✅ done | SESSION_17 |
+| RAND_add entropy injection (OpenSSL) | ✅ done | SESSION_20 |
+| SELinux + eBPF | 📋 planned | SESSION_15 |
+| Buildroot image | 📋 planned | SESSION_16 |
+| STM32H750 firmware (TRNG HID) | 🔄 in-progress | SESSION_19 |
+| End-to-end тест на железе | 📋 planned | SESSION_18 |
 
 ---
 
