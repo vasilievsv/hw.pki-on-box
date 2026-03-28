@@ -74,6 +74,20 @@ graph TB
     CERT --> DB
 ```
 
+
+## Entropy Chain
+
+Аппаратная энтропия от STM32G474CEU подмешивается в OpenSSL RAND пул перед каждой генерацией ключа — `cryptography` библиотека использует HW энтропию незаметно для себя:
+
+```
+STM32G474CEU (USB HID 0x0483:0x5750)
+    └─ HardwareTRNG.get_entropy()     64 байта / вызов
+        └─ NISTDRBG.generate()        HMAC-DRBG SP 800-90A
+            └─ RAND_add()             → OpenSSL RAND пул
+                └─ rsa/ec.generate_private_key()
+```
+
+Переключение через конфиг (`trng.mode: hardware | auto | software`).
 ## Структура проекта
 
 ```
