@@ -1,0 +1,44 @@
+# ============================================================
+# КРИТИЧНО: приватные ключи и сертификаты — НИКОГДА не коммитить
+# ============================================================
+*.pem
+*.key
+*.p12
+*.pfx
+*.der
+*.crt
+*.csr
+asw/PKI/keys/
+asw/PKI/ca/
+asw/PKI/certs/
+asw/PKI/storage/keys/
+asw/PKI/storage/ca/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+.venv
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# PlatformIO
+firmware/hmi/.pio/
+firmware/hmi/.vscode/
+
+# Buildroot артефакты (большие, не нужны в репо)
+image/buildroot/output/
+image/buildroot/dl/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Логи
+*.log
+logs/
