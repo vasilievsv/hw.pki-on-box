@@ -1,0 +1,10 @@
+﻿__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+tests/
+storage/keys/
+storage/*.db
+tmp/
+*.log
+.env
