@@ -9,18 +9,6 @@ from services.crl_service import CRLService
 from services.ocsp_service import OCSPResponder
 
 
-def build_services(cfg):
-    trng, drbg, crypto, key_storage = build_core(cfg)
-    storage_cfg = cfg.get("storage", {})
-    db = PKIDatabase(storage_cfg.get("db_path", "asw/PKI/storage/pki.db"))
-    file_storage = CertificateFileStorage(storage_cfg.get("certs_path", "asw/PKI/storage/certs"))
-    ca_svc = CertificateAuthorityService(crypto, key_storage, db, cfg)
-    crl_svc = CRLService(crypto, key_storage, ca_svc, db, cfg)
-    cert_svc = CertificateService(crypto, key_storage, ca_svc, db, file_storage)
-    ocsp_svc = OCSPResponder(crl_svc, crypto, cfg)
-    return trng, db, ca_svc, crl_svc, cert_svc, ocsp_svc
-
-
 def main():
     cfg = load_config()
     trng, drbg, crypto, key_storage = build_core(cfg)
