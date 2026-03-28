@@ -22,7 +22,7 @@ class OCSPResponder:
         self._ca_key_password = cfg.get("storage", {}).get("ca_key_password", "pki-ca-key")
 
     def check_certificate_status(self, serial_number: int) -> OCSPStatus:
-        if serial_number in self.crl_service._revoked:
+        if self.crl_service.is_revoked(serial_number):
             return OCSPStatus.REVOKED
         if serial_number > 0:
             return OCSPStatus.GOOD
