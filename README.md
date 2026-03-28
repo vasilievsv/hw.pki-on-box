@@ -9,43 +9,39 @@
 ## Архитектура
 
 ```mermaid
-graph LR
-    subgraph HMI["firmware/hmi (STM32H750VBT6)"]
-        TRNG_HW[Аппаратный RNG]
-        USB_HID[USB HID стример]
-        TRNG_HW --> USB_HID
+graph TB
+    subgraph HMI["firmware/hmi · STM32H750VBT6"]
+        TRNG_HW[Аппаратный RNG] --> USB_HID[USB HID стример]
     end
 
-    subgraph SBC["Radxa Zero (Linux)"]
-        subgraph BSW["bsw/ (ядро Linux)"]
-            SELINUX[SELinux политики]
-            EBPF[eBPF фильтры]
-        end
-
-        subgraph ASW["asw/PKI (Python daemon)"]
+    subgraph SBC["Radxa Zero · Linux"]
+        subgraph ASW["asw/PKI · Python daemon"]
             TRNG[core/trng.py]
             DRBG[core/drbg.py]
             CRYPTO[core/crypto_engine.py]
             KEYS[core/key_storage.py]
             CA[services/ca_service.py]
             CERT[services/certificate_service.py]
-            API[api/ REST+CLI]
+            API[api/ · REST + CLI]
 
-            TRNG --> DRBG --> CRYPTO
-            CRYPTO --> KEYS
+            TRNG --> DRBG --> CRYPTO --> KEYS
             CRYPTO --> CA --> CERT --> API
             KEYS --> CA
         end
 
-        BSW -. изолирует .-> ASW
+        subgraph BSW["bsw/ · ядро Linux"]
+            SELINUX[SELinux]
+            EBPF[eBPF]
+        end
     end
 
-    subgraph STORAGE["/var/lib/pki (не в репо)"]
+    subgraph STORAGE["/var/lib/pki · не в репо"]
         CA_KEYS[ca/ ключи]
         DB[(pki.db)]
     end
 
     USB_HID -->|энтропия| TRNG
+    BSW -. изолирует .-> ASW
     KEYS --> CA_KEYS
     CERT --> DB
 ```
