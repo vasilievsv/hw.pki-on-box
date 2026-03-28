@@ -1,4 +1,17 @@
-# src/security/security_manager.py
+# security/security_manager.py
+#
+# STATUS: future/hardening — не интегрирован в текущий стек
+#
+# Назначение: Linux-only hardening через SELinux + eBPF syscall filtering.
+# Требует: checkmodule, semodule_package, semodule, bpftool, restorecon
+# Требует: selinux/pki-box.te, selinux/pki-box.fc, ebpf/syscall_filter.o, ebpf/network_filter.o
+#
+# Интеграция (когда будет готово):
+#   from security.security_manager import SecurityManager, SecurityDomain
+#   sec = SecurityManager()
+#   sec.initialize_security()
+#   sec.switch_security_domain(SecurityDomain.PKI_CORE)
+#
 import ctypes
 import os
 import subprocess
