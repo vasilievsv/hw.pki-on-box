@@ -1,0 +1,17 @@
+[flake8]
+max-line-length = 120
+exclude =
+    asw/PKI/tests,
+    asw/PKI/firstceremony1.py,
+    asw/PKI/firstceremony2.py,
+    asw/PKI/tmp,
+    asw/PKI/storage/master_root_ca_storage.py,
+    asw/PKI/security/security_manager.py,
+    __pycache__
+per-file-ignores =
+    asw/PKI/pki.py: E402
+    asw/PKI/main.py: F841
+    asw/PKI/core/crypto_engine.py: F401,F841
+    asw/PKI/core/key_storage.py: F401,E203
+    asw/PKI/services/ca_service.py: F401
+    asw/PKI/storage/database.py: E501

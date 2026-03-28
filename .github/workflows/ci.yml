@@ -22,7 +22,7 @@ jobs:
         run: pip install -r asw/PKI/requirements-dev.txt
 
       - name: Lint (flake8)
-        run: flake8 asw/PKI/ --max-line-length=120 --exclude=asw/PKI/tests/
+        run: flake8 asw/PKI/
 
   test:
     runs-on: ubuntu-latest
