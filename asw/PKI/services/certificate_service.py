@@ -6,13 +6,24 @@ from cryptography.hazmat.primitives import hashes
 from core.crypto_engine import CryptoEngine
 from core.key_storage import KeyStorage
 from services.ca_service import CertificateAuthorityService
+from storage.database import PKIDatabase
+from storage.file_storage import CertificateFileStorage
 
 
 class CertificateService:
-    def __init__(self, crypto: CryptoEngine, storage: KeyStorage, ca_service: CertificateAuthorityService):
+    def __init__(
+        self,
+        crypto: CryptoEngine,
+        storage: KeyStorage,
+        ca_service: CertificateAuthorityService,
+        db: PKIDatabase,
+        file_storage: CertificateFileStorage,
+    ):
         self.crypto = crypto
         self.storage = storage
         self.ca_service = ca_service
+        self._db = db
+        self._file_storage = file_storage
 
     def _base_builder(self, common_name: str, public_key, ca_id: str, validity_days: int) -> x509.CertificateBuilder:
         ca_cert = self.ca_service.get_ca_cert(ca_id)
@@ -59,6 +70,8 @@ class CertificateService:
         # rebuild with full extensions via direct sign
         ca_key = self.ca_service.storage.load_key(ca_id, self.ca_service._ca_key_password)
         cert = self.crypto.build_certificate(builder, ca_key)
+        self._db.store_certificate(cert, ca_id)
+        self._file_storage.store_cert(cert, label=common_name)
         return private_key, cert
 
     def issue_client_certificate(self, user_id: str, ca_id: str):
@@ -80,6 +93,8 @@ class CertificateService:
         )
         ca_key = self.ca_service.storage.load_key(ca_id, self.ca_service._ca_key_password)
         cert = self.crypto.build_certificate(builder, ca_key)
+        self._db.store_certificate(cert, ca_id)
+        self._file_storage.store_cert(cert, label=user_id)
         return private_key, cert
 
     def issue_firmware_certificate(self, device_id: str, ca_id: str):
@@ -101,4 +116,6 @@ class CertificateService:
         )
         ca_key = self.ca_service.storage.load_key(ca_id, self.ca_service._ca_key_password)
         cert = self.crypto.build_certificate(builder, ca_key)
+        self._db.store_certificate(cert, ca_id)
+        self._file_storage.store_cert(cert, label=device_id)
         return private_key, cert
