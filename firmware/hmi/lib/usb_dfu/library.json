@@ -1,0 +1,16 @@
+{
+  "name": "STM32_USB_DFU",
+  "version": "1.0.0",
+  "build": {
+    "flags": [
+      "-ICore/Inc",
+      "-IClass/CustomHID/Inc"
+    ],
+    "srcFilter": [
+      "-<*>",
+      "+<Core/Src/usbd_core.c>",
+      "+<Core/Src/usbd_ctlreq.c>",
+      "+<Core/Src/usbd_ioreq.c>"
+    ]
+  }
+}
