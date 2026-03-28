@@ -73,16 +73,24 @@ hw.pki-on-box/
 
 ## Безопасность ядра
 
-```
-┌─────────────────────────────────────────────────┐
-│                  pki-box system                 │
-├─────────────────────────────────────────────────┤
-│  PKI Core (pki_core_t) ← eBPF filters → HSM    │
-│               ↓                                 │
-│        SELinux Policy Enforcement               │
-│               ↓                                 │
-│        Linux Kernel (SELinux + eBPF)            │
-└─────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph KERNEL["Linux Kernel"]
+        subgraph SELINUX["SELinux Policy Enforcement"]
+            PKI_CTX["pki_core_t"]
+            HSM_CTX["pki_hsm_t"]
+        end
+        subgraph EBPF["eBPF Filters"]
+            NET["network_filter"]
+            SYS["syscall_filter"]
+        end
+    end
+
+    PKI[PKI Core] -->|ограничен| PKI_CTX
+    HSM[HSM] -->|ограничен| HSM_CTX
+    PKI_CTX <-->|neverallow| HSM_CTX
+    PKI --> NET
+    PKI --> SYS
 ```
 
 ## Инициализация хранилища
