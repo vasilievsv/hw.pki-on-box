@@ -9,7 +9,7 @@
 ## Архитектура
 
 ```mermaid
-graph TB
+graph LR
     subgraph HMI["firmware/hmi (STM32H750VBT6)"]
         TRNG_HW[Аппаратный RNG]
         USB_HID[USB HID стример]
@@ -17,6 +17,11 @@ graph TB
     end
 
     subgraph SBC["Radxa Zero (Linux)"]
+        subgraph BSW["bsw/ (ядро Linux)"]
+            SELINUX[SELinux политики]
+            EBPF[eBPF фильтры]
+        end
+
         subgraph ASW["asw/PKI (Python daemon)"]
             TRNG[core/trng.py]
             DRBG[core/drbg.py]
@@ -25,16 +30,14 @@ graph TB
             CA[services/ca_service.py]
             CERT[services/certificate_service.py]
             API[api/ REST+CLI]
-            TRNG --> DRBG --> CRYPTO --> CA --> CERT --> API
+
+            TRNG --> DRBG --> CRYPTO
             CRYPTO --> KEYS
+            CRYPTO --> CA --> CERT --> API
+            KEYS --> CA
         end
 
-        subgraph BSW["bsw/ (ядро Linux)"]
-            SELINUX[SELinux политики]
-            EBPF[eBPF фильтры]
-        end
-
-        ASW -.изолирован.-> BSW
+        BSW -. изолирует .-> ASW
     end
 
     subgraph STORAGE["/var/lib/pki (не в репо)"]
@@ -44,7 +47,7 @@ graph TB
 
     USB_HID -->|энтропия| TRNG
     KEYS --> CA_KEYS
-    CA --> DB
+    CERT --> DB
 ```
 
 ## Структура проекта
