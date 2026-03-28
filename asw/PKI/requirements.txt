@@ -4,3 +4,4 @@ requests>=2.25
 click>=8.0
 python-dotenv>=0.19
 pyopenssl>=21.0
+pyyaml>=6.0
