@@ -16,13 +16,16 @@ class SoftwareTRNG:
         self._chi_square_max = hc.get("chi_square_max", 293.0)
 
     def get_entropy(self, n: int) -> bytes:
-        sources = [
-            os.urandom(n),
-            hashlib.sha256(str(time.time_ns()).encode()).digest(),
-            hashlib.sha256((str(os.getpid()) + str(os.getppid())).encode()).digest(),
-        ]
-        combined = b"".join(sources)
-        return hashlib.sha512(combined).digest()[:n]
+        buf = bytearray()
+        while len(buf) < n:
+            sources = [
+                os.urandom(n),
+                hashlib.sha256(str(time.time_ns()).encode()).digest(),
+                hashlib.sha256((str(os.getpid()) + str(os.getppid())).encode()).digest(),
+            ]
+            combined = b"".join(sources)
+            buf.extend(hashlib.sha512(combined).digest())
+        return bytes(buf[:n])
 
     def health_check(self, data: bytes = None) -> bool:
         sample = data if data is not None else self.get_entropy(256)
