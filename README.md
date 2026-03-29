@@ -1,50 +1,48 @@
 # hw.pki-on-box
 
-> ⚠️ **Учебный проект** — исследование PKI, TRNG и безопасности ядра Linux. Не предназначен для production использования без независимого аудита безопасности.
+> ⚠️ **Educational project** — exploring PKI, hardware TRNG and Linux kernel security. Not intended for production use without independent security audit.
 
-**Учебный проект**: PKI сервер + менеджер ключей на базе Radxa Zero (Linux) + STM32H750VBT6 (TRNG via USB HID).
+PKI server + key manager running on Radxa Zero (Linux) with STM32H750VBT6 as hardware entropy source (TRNG via USB HID).
 
-## Цель проекта
+## What it does
 
-Собрать физическую PKI коробочку (Radxa Zero + STM32H750 в корпусе) которая:
-
-- загружается с Buildroot образа
-- использует STM32H750 как аппаратный источник энтропии (USB HID)
-- проводит Root CA ceremony с аппаратным TRNG
-- выпускает X.509 сертификаты для клиентов (hw.canfd-adapter, hw.servo-drive) по REST API
-- изолирует PKI процесс через SELinux + eBPF *(planned)*
-- соответствует ISO 26262 ASIL A (учебный уровень)
+- Boots from a minimal Buildroot image
+- Uses STM32H750 as hardware random number generator (USB HID)
+- Performs Root CA ceremony with hardware TRNG
+- Issues X.509 certificates for embedded clients (hw.canfd-adapter, hw.servo-drive) via REST API
+- Isolates PKI process via SELinux + eBPF *(planned)*
+- Follows ISO 26262 ASIL A (educational level)
 
 ---
 
-## Статус реализации
+## Implementation status
 
-| Компонент | Статус | Сессия |
-|-----------|--------|--------|
-| core: TRNG/DRBG/CryptoEngine/KeyStorage | ✅ done | SESSION_4 |
-| services: CA/Cert/CRL/OCSP | ✅ done | SESSION_6 |
-| storage: SQLite + FileStorage | ✅ done | SESSION_7 |
-| REST API (Flask) | ✅ done | SESSION_9 |
-| CLI (Click) | ✅ done | SESSION_10 |
-| Integration tests (pytest) | ✅ done | SESSION_11 |
-| GitHub Actions CI/CD | ✅ done | SESSION_12 |
-| STM32G474 firmware (TRNG USB HID) | ✅ done | SESSION_14 |
-| Hardware TRNG интеграция (core/trng.py) | ✅ done | SESSION_17 |
-| RAND_add entropy injection (OpenSSL) | ✅ done | SESSION_20 |
-| SELinux + eBPF | 📋 planned | SESSION_15 |
-| Buildroot image | 📋 planned | SESSION_16 |
-| STM32H750 firmware (TRNG HID) | 🔄 in-progress | SESSION_19 |
-| End-to-end тест на железе | 📋 planned | SESSION_18 |
+| Component | Status |
+|-----------|--------|
+| core: TRNG / DRBG / CryptoEngine / KeyStorage | ✅ done |
+| services: CA / Cert / CRL / OCSP | ✅ done |
+| storage: SQLite + FileStorage | ✅ done |
+| REST API (Flask) | ✅ done |
+| CLI (Click) | ✅ done |
+| Integration tests (pytest, 21 passed) | ✅ done |
+| GitHub Actions CI/CD | ✅ done |
+| STM32G474 firmware (TRNG USB HID) | ✅ done |
+| Hardware TRNG integration (core/trng.py) | ✅ done |
+| RAND_add entropy injection (OpenSSL) | ✅ done |
+| SELinux + eBPF | 📋 planned |
+| Buildroot image | 📋 planned |
+| STM32H750 firmware (TRNG HID) | 🔄 in-progress |
+| End-to-end hardware test | 📋 planned |
 
 ---
 
-## Архитектура
+## Architecture
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#ffffff', 'primaryTextColor': '#000000', 'primaryBorderColor': '#000000', 'lineColor': '#000000', 'secondaryColor': '#f0f0f0', 'tertiaryColor': '#ffffff', 'background': '#ffffff', 'mainBkg': '#ffffff', 'nodeBorder': '#000000', 'clusterBkg': '#f8f8f8', 'clusterBorder': '#000000', 'titleColor': '#000000', 'edgeLabelBackground': '#ffffff'}}}%%
 graph TB
     subgraph HMI["firmware/hmi · STM32H750VBT6"]
-        TRNG_HW[Аппаратный RNG] --> USB_HID[USB HID стример]
+        TRNG_HW[Hardware RNG] --> USB_HID[USB HID streamer]
     end
 
     subgraph SBC["Radxa Zero · Linux"]
@@ -62,45 +60,45 @@ graph TB
             KEYS --> CA
         end
 
-        subgraph BSW["bsw/ · ядро Linux (planned)"]
+        subgraph BSW["bsw/ · Linux kernel (planned)"]
             SELINUX[SELinux]
             EBPF[eBPF]
         end
     end
 
-    subgraph STORAGE["/var/lib/pki · не в репо"]
-        CA_KEYS[ca/ ключи]
+    subgraph STORAGE["/var/lib/pki · not in repo"]
+        CA_KEYS[ca/ keys]
         DB[(pki.db)]
         CA_KEYS ~~~ DB
     end
 
-    USB_HID -->|энтропия| TRNG
-    BSW -. изолирует .-> ASW
+    USB_HID -->|entropy| TRNG
+    BSW -. isolates .-> ASW
     KEYS --> CA_KEYS
     CERT --> DB
 ```
 
+## Entropy chain
 
-## Entropy Chain
-
-Аппаратная энтропия от STM32G474CEU подмешивается в OpenSSL RAND пул перед каждой генерацией ключа — `cryptography` библиотека использует HW энтропию незаметно для себя:
+Hardware entropy from STM32G474CEU is injected into the OpenSSL RAND pool before every key generation. The `cryptography` library uses HW entropy transparently:
 
 ```
 STM32G474CEU (USB HID 0x0483:0x5750)
-    └─ HardwareTRNG.get_entropy()     64 байта / вызов
+    └─ HardwareTRNG.get_entropy()     64 bytes / call
         └─ NISTDRBG.generate()        HMAC-DRBG SP 800-90A
-            └─ RAND_add()             → OpenSSL RAND пул
+            └─ RAND_add()             → OpenSSL RAND pool
                 └─ rsa/ec.generate_private_key()
 ```
 
-Переключение через конфиг (`trng.mode: hardware | auto | software`).
-## Структура проекта
+Configurable via `trng.mode: hardware | auto | software`.
+
+## Project structure
 
 ```
 hw.pki-on-box/
 ├── .github/workflows/     ← CI/CD (planned)
 ├── firmware/
-│   └── hmi/               ← STM32H750VBT6: TRNG стример (USB HID)
+│   └── hmi/               ← STM32H750VBT6: TRNG streamer (USB HID)
 ├── asw/
 │   └── PKI/               ← Python PKI daemon
 │       ├── core/          ← trng, drbg, crypto_engine, key_storage
@@ -115,27 +113,25 @@ hw.pki-on-box/
 │       └── requirements-dev.txt
 ├── bsw/
 │   ├── ebpf/              ← network_filter, syscall_filter (planned)
-│   ├── selnux/            ← SELinux политики (planned)
+│   ├── selinux/           ← SELinux policies (planned)
 │   └── systemd/           ← pki.service, hsm.service
-├── enclosure/             ← физическая сборка
-├── image/                 ← Buildroot образ для Radxa Zero
+├── enclosure/             ← physical assembly
+├── image/                 ← Buildroot image for Radxa Zero
 ├── pytest.ini
 └── docs/
 ```
 
 ---
 
-## Быстрый старт
+## Quick start
 
 ```bash
-# Зависимости
 pip install -r asw/PKI/requirements.txt
 
-# Запуск REST API (порт 5000)
 cd asw/PKI
 python serve.py
 
-# Запуск с software TRNG (без USB HID)
+# Run with software TRNG (no USB HID needed)
 PKI_TRNG_MODE=software python serve.py
 ```
 
@@ -146,28 +142,26 @@ PKI_TRNG_MODE=software python serve.py
 Base URL: `http://localhost:5000/api/v1`
 
 ```bash
-# Создать Root CA
+# Create Root CA
 curl -X POST /api/v1/ca/root \
   -H "Content-Type: application/json" \
   -d '{"name": "My Root CA", "validity_years": 20}'
-# → {"ca_id": "ca_my_root_ca", "cert_pem": "-----BEGIN CERTIFICATE-----..."}
 
-# Выпустить серверный сертификат
+# Issue server certificate
 curl -X POST /api/v1/certs/server \
   -d '{"common_name": "device.local", "san_dns": ["device.local"], "ca_id": "ca_my_root_ca"}'
-# → {"serial": "...", "cert_pem": "...", "key_pem": "..."}
 
-# Список CA
+# List CAs
 curl /api/v1/ca
 
-# Отозвать сертификат
+# Revoke certificate
 curl -X POST /api/v1/crl/revoke \
   -d '{"serial": "<hex>", "ca_id": "ca_my_root_ca"}'
 
-# Получить CRL
+# Get CRL
 curl /api/v1/crl/ca_my_root_ca
 
-# Проверить статус (OCSP)
+# Check status (OCSP)
 curl /api/v1/ocsp/<serial_hex>
 ```
 
@@ -178,77 +172,55 @@ curl /api/v1/ocsp/<serial_hex>
 ```bash
 cd asw/PKI
 
-# Создать Root CA
 python pki.py ca create-root --name "My Root CA"
-
-# Создать Intermediate CA
 python pki.py ca create-intermediate --name "Devices CA" --parent ca_my_root_ca
-
-# Список CA
 python pki.py ca list
 
-# Выпустить серверный сертификат
 python pki.py cert issue-server --cn device.local --san device.local --ca ca_my_root_ca --out ./certs
-
-# Выпустить клиентский сертификат
 python pki.py cert issue-client --user device-001 --ca ca_my_root_ca --out ./certs
-
-# Выпустить firmware сертификат
 python pki.py cert issue-firmware --device stm32-001 --ca ca_my_root_ca --out ./certs
 
-# Отозвать сертификат
 python pki.py crl revoke --serial <hex> --ca ca_my_root_ca --reason key_compromise
-
-# Сгенерировать CRL
 python pki.py crl generate --ca ca_my_root_ca --out crl.pem
-
-# Проверить статус сертификата
 python pki.py crl check --serial <hex>
 ```
 
 ---
 
-## Тестирование
+## Testing
 
 ```bash
-# Установить dev-зависимости
 pip install -r asw/PKI/requirements-dev.txt
 
-# Запустить все тесты
 PKI_TRNG_MODE=software pytest asw/PKI/tests/ -v
-
-# Результат: 21 passed
+# Result: 21 passed
 ```
 
-Покрытие тестами:
-
-| Файл | Что тестирует |
-|------|---------------|
-| `tests/conftest.py` | фикстуры: cfg, services, root_ca, flask client |
+| File | Coverage |
+|------|----------|
+| `tests/conftest.py` | fixtures: cfg, services, root_ca, flask client |
 | `tests/test_core.py` | TRNG, DRBG, RSA/EC sign-verify, KeyStorage |
 | `tests/test_services.py` | CA/Cert/CRL/OCSP, DB persistence, FileStorage |
-| `tests/test_api.py` | все REST endpoints |
+| `tests/test_api.py` | all REST endpoints |
 
 ---
 
-## Конфигурация
+## Configuration
 
-Пример конфига: `asw/PKI/config.example.yaml`
+Example config: `asw/PKI/config.example.yaml`
 
-Переменные окружения:
-
-| Переменная | По умолчанию | Описание |
-|------------|-------------|----------|
+| Variable | Default | Description |
+|----------|---------|-------------|
 | `PKI_TRNG_MODE` | `auto` | `auto` / `hardware` / `software` |
-| `PKI_STORAGE_PATH` | `asw/PKI/storage/keys` | путь к хранилищу ключей |
-| `PKI_DB_PATH` | `asw/PKI/storage/pki.db` | путь к SQLite БД |
-| `PKI_CERTS_PATH` | `asw/PKI/storage/certs` | путь к файлам сертификатов |
+| `PKI_STORAGE_PATH` | `asw/PKI/storage/keys` | key storage path |
+| `PKI_DB_PATH` | `asw/PKI/storage/pki.db` | SQLite database path |
+| `PKI_CERTS_PATH` | `asw/PKI/storage/certs` | certificate files path |
 
-> Хранилище **не хранится в репозитории** — инициализируется при первом запуске.
+> Storage is **not committed to the repo** — initialized on first run.
 
 ---
 
-## Безопасность ядра *(planned)*
+## Kernel security *(planned)*
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#ffffff', 'primaryTextColor': '#000000', 'primaryBorderColor': '#000000', 'lineColor': '#000000', 'secondaryColor': '#f0f0f0', 'tertiaryColor': '#ffffff', 'background': '#ffffff', 'mainBkg': '#ffffff', 'nodeBorder': '#000000', 'clusterBkg': '#f8f8f8', 'clusterBorder': '#000000', 'titleColor': '#000000', 'edgeLabelBackground': '#ffffff'}}}%%
@@ -264,8 +236,8 @@ graph TB
         end
     end
 
-    PKI[PKI Core] -->|ограничен| PKI_CTX
-    HSM[HSM] -->|ограничен| HSM_CTX
+    PKI[PKI Core] -->|confined| PKI_CTX
+    HSM[HSM] -->|confined| HSM_CTX
     PKI_CTX <-->|neverallow| HSM_CTX
     PKI --> NET
     PKI --> SYS
@@ -273,8 +245,8 @@ graph TB
 
 ---
 
-## Стандарты
+## Standards
 
-- ISO 26262 ASIL A (учебный уровень)
+- ISO 26262 ASIL A (educational level)
 - NIST SP 800-90A (DRBG)
 - NIST SP 800-57 (Key Management)
