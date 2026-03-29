@@ -41,6 +41,7 @@
 ## Архитектура
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#ffffff', 'primaryTextColor': '#000000', 'primaryBorderColor': '#000000', 'lineColor': '#000000', 'secondaryColor': '#f0f0f0', 'tertiaryColor': '#ffffff', 'background': '#ffffff', 'mainBkg': '#ffffff', 'nodeBorder': '#000000', 'clusterBkg': '#f8f8f8', 'clusterBorder': '#000000', 'titleColor': '#000000', 'edgeLabelBackground': '#ffffff'}}}%%
 graph TB
     subgraph HMI["firmware/hmi · STM32H750VBT6"]
         TRNG_HW[Аппаратный RNG] --> USB_HID[USB HID стример]
@@ -70,6 +71,7 @@ graph TB
     subgraph STORAGE["/var/lib/pki · не в репо"]
         CA_KEYS[ca/ ключи]
         DB[(pki.db)]
+        CA_KEYS ~~~ DB
     end
 
     USB_HID -->|энтропия| TRNG
@@ -249,6 +251,7 @@ PKI_TRNG_MODE=software pytest asw/PKI/tests/ -v
 ## Безопасность ядра *(planned)*
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#ffffff', 'primaryTextColor': '#000000', 'primaryBorderColor': '#000000', 'lineColor': '#000000', 'secondaryColor': '#f0f0f0', 'tertiaryColor': '#ffffff', 'background': '#ffffff', 'mainBkg': '#ffffff', 'nodeBorder': '#000000', 'clusterBkg': '#f8f8f8', 'clusterBorder': '#000000', 'titleColor': '#000000', 'edgeLabelBackground': '#ffffff'}}}%%
 graph TB
     subgraph KERNEL["Linux Kernel"]
         subgraph SELINUX["SELinux Policy Enforcement"]
