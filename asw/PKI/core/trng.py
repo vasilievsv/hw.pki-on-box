@@ -28,19 +28,22 @@ class SoftwareTRNG:
         return bytes(buf[:n])
 
     def health_check(self, data: bytes = None) -> bool:
-        sample = data if data is not None else self.get_entropy(256)
+        sample = data if data is not None else self.get_entropy(1024)
         if len(sample) < 8:
             return False
         ones = sum(bin(b).count("1") for b in sample)
         ratio = ones / (len(sample) * 8)
         if not (self._bit_ratio_min <= ratio <= self._bit_ratio_max):
             return False
-        counts = [0] * 256
-        for b in sample:
-            counts[b] += 1
-        expected = len(sample) / 256.0
-        chi2 = sum((c - expected) ** 2 / expected for c in counts)
-        return chi2 <= self._chi_square_max
+        if len(sample) >= 512:
+            counts = [0] * 256
+            for b in sample:
+                counts[b] += 1
+            expected = len(sample) / 256.0
+            chi2 = sum((c - expected) ** 2 / expected for c in counts)
+            if chi2 > self._chi_square_max:
+                return False
+        return True
 
 
 class HardwareTRNG:
