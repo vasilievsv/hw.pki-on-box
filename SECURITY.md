@@ -1,31 +1,31 @@
 # Security Policy
 
-## ⚠️ Важно
+## ⚠️ Important
 
-Это **учебный проект** для исследования PKI и криптографии. Не предназначен для использования в production системах.
+This is an **educational project** for exploring PKI and cryptography. Not intended for use in production systems.
 
-## Поддерживаемые версии
+## Supported versions
 
-| Версия | Поддержка |
-|--------|-----------|
+| Version | Support |
+|---------|---------|
 | main | ✅ |
 
-## Сообщить об уязвимости
+## Reporting a vulnerability
 
-Если вы обнаружили уязвимость в коде:
+If you found a vulnerability in the code:
 
-1. **Не создавайте публичный Issue**
-2. Напишите на email: imp.cepera@gmail.com
-3. Укажите: описание, шаги воспроизведения, потенциальное влияние
+1. **Do not open a public Issue**
+2. Email: imp.cepera@gmail.com
+3. Include: description, reproduction steps, potential impact
 
-Ответ в течение 7 дней.
+Response within 7 days.
 
-## Область применения
+## Scope
 
-Проект исследует:
-- PKI (Public Key Infrastructure) на embedded Linux
-- TRNG через USB HID (STM32H750)
-- SELinux + eBPF изоляцию процессов
-- ISO 26262 ASIL A (учебный уровень)
+This project explores:
+- PKI (Public Key Infrastructure) on embedded Linux
+- Hardware TRNG via USB HID (STM32H750)
+- SELinux + eBPF process isolation
+- ISO 26262 ASIL A (educational level)
 
-**Не используйте этот код для защиты реальных данных без независимого аудита безопасности.**
+**Do not use this code to protect real data without an independent security audit.**
