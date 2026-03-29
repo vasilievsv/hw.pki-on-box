@@ -4,6 +4,20 @@
 
 PKI server + key manager running on Radxa Zero (Linux) with STM32H750VBT6 as hardware entropy source (TRNG via USB HID).
 
+## Why this is different
+
+Most "PKI on GitHub" repos are key generators with a REST API wrapper — a Python script calling `cryptography`, maybe wrapped in Docker. That's not PKI.
+
+This project connects low-level hardware to a full PKI stack:
+
+- **Hardware entropy** — STM32 TRNG feeds real physical randomness into OpenSSL RAND pool before every key generation. Not `os.urandom()`.
+- **NIST DRBG** — HMAC-DRBG SP 800-90A on top of hardware entropy, not software fallback.
+- **Full PKI** — CA ceremony, X.509 issuance, CRL, OCSP. Not "create a root cert".
+- **$50 hardware** — Radxa Zero ($35) + STM32H750 ($12). No $10k HSM required.
+- **Tested** — 21 automated tests, GitHub Actions CI. Not "I checked it manually".
+
+The entropy chain from silicon to OpenSSL is documented and open. That's rare.
+
 ## What it does
 
 - Boots from a minimal Buildroot image
