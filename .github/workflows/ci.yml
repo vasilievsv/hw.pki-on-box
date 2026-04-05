@@ -47,3 +47,27 @@ jobs:
           PKI_TRNG_MODE: software
           PYTHONPATH: asw/PKI
         run: pytest asw/PKI/tests/ -v --tb=short
+
+  security-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Check for private keys in repo
+        run: |
+          echo "Scanning for private key files..."
+          FOUND=$(find . -type f \( -name "*.pem" -o -name "*.key" -o -name "*.p12" -o -name "*.pfx" -o -name "*.der" \) \
+            ! -path "./.git/*" ! -path "*/test*" ! -path "*fixture*" || true)
+          if [ -n "$FOUND" ]; then
+            echo "::error::Private key files found: $FOUND"
+            exit 1
+          fi
+
+      - name: Check for private key content
+        run: |
+          echo "Scanning file contents for private keys..."
+          if grep -rn "BEGIN \(RSA \|EC \)\?PRIVATE KEY" --include="*.py" --include="*.yaml" --include="*.yml" --include="*.json" --include="*.txt" --include="*.md" . 2>/dev/null | grep -v ".git/" | grep -v "test" | grep -v "grep"; then
+            echo "::error::Private key content found in source files"
+            exit 1
+          fi
+          echo "No private keys found in source files"

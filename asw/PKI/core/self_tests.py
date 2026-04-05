@@ -1,6 +1,5 @@
 import hmac
 import hashlib
-import struct
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.asymmetric import rsa, ec, padding
