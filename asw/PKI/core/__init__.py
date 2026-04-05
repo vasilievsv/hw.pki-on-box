@@ -3,6 +3,7 @@ from .trng import HardwareTRNG, SoftwareTRNG, TRNGDeviceError
 from .drbg import NISTDRBG
 from .crypto_engine import CryptoEngine
 from .key_storage import KeyStorage
+from .self_tests import run_kat, CryptoSelfTestError
 
 
 def build_core(cfg: dict = None):
@@ -14,6 +15,8 @@ def build_core(cfg: dict = None):
     """
     if cfg is None:
         cfg = load_config()
+
+    run_kat()
 
     trng = HardwareTRNG(cfg)
     drbg = NISTDRBG(trng, cfg)
@@ -35,4 +38,6 @@ __all__ = [
     "NISTDRBG",
     "CryptoEngine",
     "KeyStorage",
+    "run_kat",
+    "CryptoSelfTestError",
 ]
