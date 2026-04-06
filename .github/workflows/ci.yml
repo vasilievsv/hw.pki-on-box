@@ -48,6 +48,24 @@ jobs:
           PYTHONPATH: asw/PKI
         run: pytest asw/PKI/tests/ -v --tb=short
 
+  drift-check:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - uses: actions/setup-python@v5.4.0
+        with:
+          python-version: "3.13"
+
+      - name: Drift check — host (crypto-engine contract)
+        continue-on-error: true
+        run: python scripts/drift_check_host.py
+
+      - name: Drift check — firmware (trng_hid contract)
+        continue-on-error: true
+        run: python scripts/drift_check_firmware.py
+
   security-check:
     runs-on: ubuntu-latest
     steps:
