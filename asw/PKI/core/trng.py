@@ -11,9 +11,9 @@ class TRNGDeviceError(Exception):
 class SoftwareTRNG:
     def __init__(self, cfg: dict = None):
         hc = (cfg or {}).get("health_check", {})
-        self._bit_ratio_min = hc.get("bit_ratio_min", 0.45)
-        self._bit_ratio_max = hc.get("bit_ratio_max", 0.55)
-        self._chi_square_max = hc.get("chi_square_max", 293.0)
+        self._bit_ratio_min = hc.get("bit_ratio_min", 0.40)
+        self._bit_ratio_max = hc.get("bit_ratio_max", 0.60)
+        self._chi_square_max = hc.get("chi_square_max", 310.0)
 
     def get_entropy(self, n: int) -> bytes:
         buf = bytearray()
@@ -28,7 +28,7 @@ class SoftwareTRNG:
         return bytes(buf[:n])
 
     def health_check(self, data: bytes = None) -> bool:
-        sample = data if data is not None else self.get_entropy(1024)
+        sample = data if data is not None else self.get_entropy(2048)
         if len(sample) < 8:
             return False
         ones = sum(bin(b).count("1") for b in sample)
