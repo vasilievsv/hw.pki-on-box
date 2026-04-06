@@ -1,0 +1,32 @@
+repos:
+  - repo: local
+    hooks:
+      - id: no-private-keys-files
+        name: Block private key files
+        entry: bash -c 'echo "❌ Private key file detected!" && exit 1'
+        language: system
+        files: '\.(pem|key|p12|pfx|der)$'
+        exclude: '(test|fixture|example|mock)'
+
+      - id: no-private-keys-content
+        name: Block private key content
+        entry: bash -c 'grep -l "BEGIN.*PRIVATE KEY" "$@" && echo "❌ Private key content detected!" && exit 1 || exit 0'
+        language: system
+        types: [text]
+        exclude: '(\.git/|test|fixture|\.gitignore|\.pre-commit)'
+
+      - id: no-secrets
+        name: Block hardcoded secrets
+        entry: bash -c 'grep -lE "(password|secret|api_key|private_key)\s*=\s*[\"'\''][^\"'\'']+[\"'\'']" "$@" && echo "❌ Hardcoded secret detected!" && exit 1 || exit 0'
+        language: system
+        types: [python]
+        exclude: '(test|fixture|example|config\.example)'
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ['--maxkb=500']
