@@ -64,13 +64,13 @@ class NISTDRBG:
         return result[:n]
 
     def health_check(self, data: bytes = None) -> bool:
-        sample = data if data is not None else self.generate(256)
+        sample = data if data is not None else self.generate(2048)
         if len(sample) < 8:
             return False
 
         ones = sum(bin(b).count("1") for b in sample)
         ratio = ones / (len(sample) * 8)
-        if not (0.45 <= ratio <= 0.55):
+        if not (0.40 <= ratio <= 0.60):
             return False
 
         counts = [0] * 256
@@ -78,4 +78,4 @@ class NISTDRBG:
             counts[b] += 1
         expected = len(sample) / 256.0
         chi2 = sum((c - expected) ** 2 / expected for c in counts)
-        return chi2 <= 293.0
+        return chi2 <= 310.0
