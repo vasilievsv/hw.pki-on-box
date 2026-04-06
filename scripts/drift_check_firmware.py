@@ -5,7 +5,6 @@
   python scripts/drift_check_firmware.py
   python scripts/drift_check_firmware.py --json results.json
 """
-import yaml
 import re
 import sys
 import json
