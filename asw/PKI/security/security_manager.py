@@ -83,19 +83,19 @@ class SecurityManager:
         try:
             subprocess.run(
                 ['checkmodule', '-M', '-m', '-o', mod_file, te_file],
-                check=True, capture_output=True,
+                check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             )
             subprocess.run(
                 ['semodule_package', '-o', pp_file, '-m', mod_file, '-f', fc_file],
-                check=True, capture_output=True,
+                check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             )
             subprocess.run(
                 ['semodule', '-i', pp_file],
-                check=True, capture_output=True,
+                check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             )
             subprocess.run(
                 ['restorecon', '-R', '/var/lib/pki-box', '/var/log/pki-box', '/etc/pki-box'],
-                check=True, capture_output=True,
+                check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             )
             self.selinux_loaded = True
             logger.info("SELinux policy loaded")
@@ -113,7 +113,7 @@ class SecurityManager:
                 pin_path = '/sys/fs/bpf/{}'.format(name)
                 subprocess.run(
                     ['bpftool', 'prog', 'load', obj_path, pin_path],
-                    check=True, capture_output=True,
+                    check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 )
             self._configure_ebpf_maps()
             self.ebpf_loaded = True
@@ -130,7 +130,7 @@ class SecurityManager:
                     '/sys/fs/bpf/syscall_filter/allowed_syscalls',
                     'key', str(domain.value), 'value', hex(bitmask),
                 ],
-                check=True, capture_output=True,
+                check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             )
 
     def _configure_process_isolation(self):
@@ -172,7 +172,7 @@ class SecurityManager:
                     '/sys/fs/bpf/syscall_filter/pid_to_domain',
                     'key', str(pid), 'value', str(domain_value),
                 ],
-                check=True, capture_output=True,
+                check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             )
         except (subprocess.CalledProcessError, FileNotFoundError) as e:
             logger.error("eBPF domain switch failed: %s", e)
