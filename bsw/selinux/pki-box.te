@@ -11,6 +11,7 @@ type pki_hsm_t;
 type pki_hsm_exec_t;
 type pki_var_t;
 type pki_log_t;
+type pki_config_t;
 
 # Роли
 role pki_r types { pki_core_t, pki_hsm_t };
@@ -24,6 +25,10 @@ allow pki_core_t pki_hsm_t:unix_stream_socket connectto;
 allow pki_core_t pki_hsm_t:process signal;
 allow pki_core_t pki_var_t:file { read write create };
 allow pki_core_t pki_log_t:file { append create };
+
+# Доступ к конфигурации
+allow pki_core_t pki_config_t:file { read getattr };
+allow pki_hsm_t pki_config_t:file { read getattr };
 
 # Разрешения для HSM
 allow pki_hsm_t pki_var_t:dir search;
