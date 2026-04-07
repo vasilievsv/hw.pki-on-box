@@ -4,7 +4,15 @@
 #include "usbd_customhid.h"
 #include "trng_hid.h"
 
-void Error_Handler(void) { while (1) {} }
+static IWDG_HandleTypeDef hiwdg;
+
+void Error_Handler(void) {                                           /* G3 */
+    __disable_irq();
+    while (1) {
+        HAL_GPIO_TogglePin(BSP_LED_PORT, BSP_LED_PIN);
+        for (volatile uint32_t i = 0; i < 100000; i++);
+    }
+}
 
 void SystemClock_Config(void);
 
@@ -34,16 +42,30 @@ static USBD_CUSTOM_HID_ItfTypeDef hid_fops = {
     HID_OutEvent,
 };
 
+static void IWDG_Init(void) {                                       /* G5 */
+#if defined(BSP_FAMILY_H7)
+    hiwdg.Instance       = IWDG1;
+#else
+    hiwdg.Instance       = IWDG;
+#endif
+    hiwdg.Init.Prescaler = IWDG_PRESCALER_64;
+    hiwdg.Init.Window    = IWDG_WINDOW_DISABLE;
+    hiwdg.Init.Reload    = 1000;
+    if (HAL_IWDG_Init(&hiwdg) != HAL_OK) Error_Handler();
+}
+
 int main(void) {
     HAL_Init();
     SystemClock_Config();
 
-    __HAL_RCC_GPIOC_CLK_ENABLE();
-    GPIO_InitTypeDef gpio = {GPIO_PIN_6, GPIO_MODE_OUTPUT_PP,
+    BSP_LED_CLK_EN();
+    GPIO_InitTypeDef gpio = {BSP_LED_PIN, GPIO_MODE_OUTPUT_PP,
                              GPIO_NOPULL, GPIO_SPEED_FREQ_LOW};
-    HAL_GPIO_Init(GPIOC, &gpio);
+    HAL_GPIO_Init(BSP_LED_PORT, &gpio);
 
     TRNG_Init();
+    TRNG_StartupTest();                                              /* G4: TSR-1 */
+    IWDG_Init();                                                     /* G5: watchdog */
 
     USBD_Init(&hdev, &FS_Desc, DEVICE_FS);
     USBD_RegisterClass(&hdev, USBD_CUSTOM_HID_CLASS);
@@ -52,20 +74,22 @@ int main(void) {
 
     uint8_t report[64];
     uint32_t last_blink = 0;
-    static volatile uint32_t send_ok = 0;
-    static volatile uint32_t send_busy = 0;
 
     while (1) {
+        HAL_IWDG_Refresh(&hiwdg);                                   /* G5: refresh */
+
         if (hdev.pClassData != NULL) {
             TRNG_FillReport(report, sizeof(report));
             uint8_t res = USBD_CUSTOM_HID_SendReport(&hdev, report, sizeof(report));
-            if (res == USBD_OK) send_ok++;
-            else send_busy++;
+            if (res != USBD_OK) {
+                HAL_Delay(1);                                        /* G9: rate limiting */
+            }
         }
 
         uint32_t now = HAL_GetTick();
-        if (now - last_blink >= (send_ok > 0 ? 100 : 500)) {
-            HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_6);
+        uint32_t interval = (hdev.pClassData != NULL) ? 100 : 500;
+        if (now - last_blink >= interval) {
+            HAL_GPIO_TogglePin(BSP_LED_PORT, BSP_LED_PIN);
             last_blink = now;
         }
     }
