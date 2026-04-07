@@ -1,0 +1,27 @@
+target:
+  host: "<TARGET_HOST>"
+  port: <SSH_PORT>
+  user: "<SSH_USER>"
+
+paths:
+  app_dir: /opt/pki-on-box/app
+  data_dir: /opt/pki-on-box/data
+  logs_dir: /opt/pki-on-box/logs
+  venv_dir: /opt/pki-on-box/venv
+  config: /opt/pki-on-box/config.yaml
+  backup_dir: /opt/pki-on-box/app.prev
+
+service:
+  name: pki
+  restart_timeout_sec: 10
+  health_check_url: "http://127.0.0.1:5000/health"
+  health_check_timeout_sec: 5
+
+storage:
+  path: /var/lib/pki
+  trng_device: /dev/hidraw0
+
+logging:
+  level: INFO
+  max_size_mb: 50
+  rotate_count: 5

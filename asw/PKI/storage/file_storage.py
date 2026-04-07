@@ -1,3 +1,4 @@
+from typing import Optional, List
 import shutil
 from pathlib import Path
 from cryptography import x509
@@ -29,13 +30,13 @@ class CertificateFileStorage:
             shutil.copy2(dest, label_path)
         return dest
 
-    def load_cert(self, serial: int) -> x509.Certificate | None:
+    def load_cert(self, serial: int) -> Optional[x509.Certificate]:
         path = self._base / f"{format(serial, 'x')}.pem"
         if not path.exists():
             return None
         return x509.load_pem_x509_certificate(path.read_bytes())
 
-    def load_cert_by_label(self, label: str) -> x509.Certificate | None:
+    def load_cert_by_label(self, label: str) -> Optional[x509.Certificate]:
         path = self._by_label / f"{label}.pem"
         if not path.exists():
             return None
@@ -53,7 +54,7 @@ class CertificateFileStorage:
             raise FileNotFoundError(f"cert {format(serial, 'x')} not found")
         dest.write_bytes(self._der_bytes(cert))
 
-    def list_certs(self) -> list[dict]:
+    def list_certs(self) -> List[dict]:
         result = []
         for pem_file in sorted(self._base.glob("*.pem")):
             cert = x509.load_pem_x509_certificate(pem_file.read_bytes())

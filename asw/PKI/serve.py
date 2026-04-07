@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# serve.py — запуск Flask REST API
+import os
 import sys
 from core import build_core, load_config
 from storage.database import PKIDatabase
@@ -14,8 +14,12 @@ from api.rest_api import PKIRestAPI
 def build_services(cfg: dict):
     trng, drbg, crypto, key_storage = build_core(cfg)
     storage_cfg = cfg.get("storage", {})
-    db = PKIDatabase(storage_cfg.get("db_path", "asw/PKI/storage/pki.db"))
-    file_storage = CertificateFileStorage(storage_cfg.get("certs_path", "asw/PKI/storage/certs"))
+    base_path = storage_cfg.get("base_path", storage_cfg.get("path", "asw/PKI/storage"))
+    db_name = storage_cfg.get("db_name", "pki.db")
+    db_path = storage_cfg.get("db_path", os.path.join(base_path, db_name))
+    certs_dir = storage_cfg.get("certs_path", os.path.join(base_path, storage_cfg.get("certs_dir", "certs")))
+    db = PKIDatabase(db_path)
+    file_storage = CertificateFileStorage(certs_dir)
     ca_svc = CertificateAuthorityService(crypto, key_storage, db, cfg)
     crl_svc = CRLService(crypto, key_storage, ca_svc, db, cfg)
     cert_svc = CertificateService(crypto, key_storage, ca_svc, db, file_storage)
@@ -34,9 +38,9 @@ if __name__ == "__main__":
     cfg = load_config()
     trng, db, ca_svc, crl_svc, cert_svc, ocsp_svc = build_services(cfg)
 
-    health = trng.health_check()
-    if not health.get("passed", False):
-        print(f"❌ TRNG health check failed: {health}", file=sys.stderr)
+    health_ok = trng.health_check()
+    if not health_ok:
+        print("TRNG health check failed", file=sys.stderr)
         sys.exit(1)
 
     api = PKIRestAPI(ca_svc, cert_svc, crl_svc, ocsp_svc, db)

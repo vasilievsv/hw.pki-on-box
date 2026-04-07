@@ -1,7 +1,7 @@
 #ifndef USBD_CONF_H
 #define USBD_CONF_H
 
-#include "stm32g4xx_hal.h"
+#include "board_config.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -15,7 +15,7 @@ class CRLService:
         self._db = db
         cfg = cfg or {}
         self._ca_key_password = cfg.get("storage", {}).get("ca_key_password", "pki-ca-key")
-        self._ca_certs: dict[str, x509.Certificate] = {}
+        self._ca_certs = {}  # type: dict
 
     def register_ca_cert(self, ca_id: str, cert: x509.Certificate) -> None:
         self._ca_certs[ca_id] = cert

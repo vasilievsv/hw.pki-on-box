@@ -47,3 +47,8 @@ Thumbs.db
 # Логи
 *.log
 logs/
+
+# Deploy — реальные конфиги (только example в репо)
+deploy/config.yaml
+deploy/*.env
+deploy/.env

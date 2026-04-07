@@ -1,4 +1,5 @@
 import datetime
+from typing import Optional, Dict
 from cryptography import x509
 from cryptography.x509.oid import NameOID
 from cryptography.hazmat.primitives import hashes
@@ -15,7 +16,7 @@ class CertificateAuthorityService:
         self._db = db
         cfg = cfg or {}
         self._ca_key_password = cfg.get("storage", {}).get("ca_key_password", "pki-ca-key")
-        self._certs: dict[str, x509.Certificate] = {}
+        self._certs: Dict[str, x509.Certificate] = {}
         for row in self._db.list_ca_certs():
             cert = self._db.load_ca_cert(row["id"])
             if cert:
@@ -31,7 +32,7 @@ class CertificateAuthorityService:
         signing_key,
         issuer_name: x509.Name,
         validity_years: int,
-        path_length: int | None,
+        path_length: Optional[int],
     ) -> x509.Certificate:
         now = datetime.datetime.now(datetime.timezone.utc)
         subject = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, subject_name)])
