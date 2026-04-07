@@ -3,8 +3,20 @@
 on:
   push:
     branches: [main, "feature/*"]
+    paths-ignore:
+      - "*.md"
+      - "README*.md"
+      - "docs/**"
+      - "LICENSE"
+      - ".gitignore"
   pull_request:
     branches: [main]
+    paths-ignore:
+      - "*.md"
+      - "README*.md"
+      - "docs/**"
+      - "LICENSE"
+      - ".gitignore"
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
