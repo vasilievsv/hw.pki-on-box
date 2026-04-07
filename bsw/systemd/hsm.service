@@ -1,18 +1,32 @@
-# pki-hsm.service
 [Unit]
 Description=PKI Box HSM Service
-After=pki-box.service
+After=pki.service
+BindsTo=pki.service
 
 [Service]
-Type=simple  
-SELinuxContext=system_u:system_r:pki_hsm_t:s0
-ExecStart=/usr/bin/pki-hsm --isolated
+Type=simple
+WorkingDirectory=/opt/pki-on-box
+ExecStart=/opt/pki-on-box/venv/bin/python -m asw.PKI.hsm_service
 Restart=on-failure
 RestartSec=10s
+User=pki
+Group=pki
+
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
 NoNewPrivileges=yes
+ReadWritePaths=/var/lib/pki /var/log/pki-box
 RestrictAddressFamilies=AF_UNIX
 RestrictNamespaces=yes
 RestrictRealtime=yes
+RestrictSUIDSGID=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+MemoryDenyWriteExecute=yes
+LockPersonality=yes
+DeviceAllow=/dev/hidraw0 rw
 
 [Install]
-WantedBy=pki-box.service
+WantedBy=pki.service
