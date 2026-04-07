@@ -1,5 +1,6 @@
 import sqlite3
 import datetime
+from typing import Optional, List, Dict
 from pathlib import Path
 from cryptography import x509
 from cryptography.hazmat.primitives.serialization import Encoding
@@ -57,12 +58,12 @@ class PKIDatabase:
                 (ca_id, name, self._cert_to_pem(cert), self._now()),
             )
 
-    def load_ca_cert(self, ca_id: str) -> x509.Certificate | None:
+    def load_ca_cert(self, ca_id: str) -> Optional[x509.Certificate]:
         with self._connect() as conn:
             row = conn.execute("SELECT cert_pem FROM ca_certificates WHERE id=?", (ca_id,)).fetchone()
         return self._pem_to_cert(row["cert_pem"]) if row else None
 
-    def list_ca_certs(self) -> list[dict]:
+    def list_ca_certs(self) -> List[dict]:
         with self._connect() as conn:
             rows = conn.execute("SELECT id, name, created_at FROM ca_certificates").fetchall()
         return [dict(r) for r in rows]
@@ -71,15 +72,15 @@ class PKIDatabase:
         serial = format(cert.serial_number, "x")
         cn = cert.subject.get_attributes_for_oid(x509.oid.NameOID.COMMON_NAME)
         common_name = cn[0].value if cn else ""
-        issued = cert.not_valid_before_utc.isoformat()
-        expires = cert.not_valid_after_utc.isoformat()
+        issued = cert.not_valid_before.isoformat()
+        expires = cert.not_valid_after.isoformat()
         with self._connect() as conn:
             conn.execute(
                 "INSERT OR REPLACE INTO certificates (serial, common_name, cert_pem, ca_id, issued_at, expires_at, status) VALUES (?,?,?,?,?,?,?)",
                 (serial, common_name, self._cert_to_pem(cert), ca_id, issued, expires, "active"),
             )
 
-    def load_certificate(self, serial: int) -> x509.Certificate | None:
+    def load_certificate(self, serial: int) -> Optional[x509.Certificate]:
         serial_hex = format(serial, "x")
         with self._connect() as conn:
             row = conn.execute("SELECT cert_pem FROM certificates WHERE serial=?", (serial_hex,)).fetchone()
@@ -94,7 +95,7 @@ class PKIDatabase:
             )
             conn.execute("UPDATE certificates SET status='revoked' WHERE serial=?", (serial_hex,))
 
-    def get_revoked(self, ca_id: str) -> dict[int, x509.ReasonFlags]:
+    def get_revoked(self, ca_id: str) -> Dict[int, x509.ReasonFlags]:
         with self._connect() as conn:
             rows = conn.execute(
                 "SELECT r.serial, r.reason FROM revoked_certificates r "

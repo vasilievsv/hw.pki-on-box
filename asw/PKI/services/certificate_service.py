@@ -40,7 +40,7 @@ class CertificateService:
             .add_extension(x509.SubjectKeyIdentifier.from_public_key(public_key), critical=False)
         )
 
-    def issue_server_certificate(self, common_name: str, san_dns: list[str], ca_id: str):
+    def issue_server_certificate(self, common_name: str, san_dns, ca_id: str):
         private_key, public_key = self.crypto.generate_rsa_keypair(2048)
         builder = (
             self._base_builder(common_name, public_key, ca_id, validity_days=365)

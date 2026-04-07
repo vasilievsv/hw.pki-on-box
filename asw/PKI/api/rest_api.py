@@ -38,6 +38,10 @@ class PKIRestAPI:
     def _setup_routes(self):
         app = self.app
 
+        @app.route("/api/v1/health")
+        def health():
+            return jsonify({"status": "ok"})
+
         # --- CA ---
 
         @app.route("/api/v1/ca/root", methods=["POST"])

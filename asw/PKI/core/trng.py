@@ -20,7 +20,7 @@ class SoftwareTRNG:
         while len(buf) < n:
             sources = [
                 os.urandom(n),
-                hashlib.sha256(str(time.time_ns()).encode()).digest(),
+                hashlib.sha256(str(int(time.time() * 1e9)).encode()).digest(),
                 hashlib.sha256((str(os.getpid()) + str(os.getppid())).encode()).digest(),
             ]
             combined = b"".join(sources)
