@@ -27,7 +27,11 @@ def main():
     print(f"   Storage   : {storage_cfg.get('path', 'asw/PKI/storage')}")
 
     health = trng.health_check()
-    if not health.get("passed", False):
+    if isinstance(health, dict):
+        passed = health.get("passed", False)
+    else:
+        passed = bool(health)
+    if not passed:
         print(f"❌ TRNG health check failed: {health}", file=sys.stderr)
         sys.exit(1)
     print("   TRNG      : ✅ health check passed")

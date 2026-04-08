@@ -18,7 +18,11 @@ def build_core(cfg: dict = None):
 
     run_kat()
 
-    trng = HardwareTRNG(cfg)
+    trng_mode = cfg.get("trng", {}).get("mode", "hardware")
+    if trng_mode == "software":
+        trng = SoftwareTRNG(cfg)
+    else:
+        trng = HardwareTRNG(cfg)
     drbg = NISTDRBG(trng, cfg)
     drbg.instantiate(
         personalization=cfg.get("drbg", {}).get("personalization", "").encode()
