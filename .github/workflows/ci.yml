@@ -58,7 +58,7 @@ jobs:
         env:
           PKI_TRNG_MODE: software
           PYTHONPATH: asw/PKI
-        run: pytest asw/PKI/tests/ -v --tb=short
+        run: pytest asw/PKI/tests/ -v --tb=short -m "not target"
 
   drift-check:
     runs-on: ubuntu-latest
