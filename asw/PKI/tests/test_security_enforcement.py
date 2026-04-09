@@ -3,6 +3,8 @@ import subprocess
 import pytest
 import struct
 
+pytestmark = pytest.mark.target
+
 BSW_PATH = os.environ.get("PKI_BSW_PATH", "/opt/pki-on-box/app/bsw")
 SELINUX_PATH = f"{BSW_PATH}/selinux"
 EBPF_PATH = f"{BSW_PATH}/ebpf"
