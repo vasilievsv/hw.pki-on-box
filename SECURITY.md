@@ -15,7 +15,7 @@ This is an **educational project** for exploring PKI and cryptography. Not inten
 If you found a vulnerability in the code:
 
 1. **Do not open a public Issue**
-2. Email: imp.cepera@gmail.com
+2. Email: james.miller.cloud83@proton.me
 3. Include: description, reproduction steps, potential impact
 
 Response within 7 days.
