@@ -11,7 +11,7 @@
 [![Tests](https://img.shields.io/badge/tests-99%2B%20passed-brightgreen.svg)]()
 [![Stars](https://img.shields.io/github/stars/vasilievsv/hw.pki-on-box?style=social)](https://github.com/vasilievsv/hw.pki-on-box)
 
-> ⚠️ **Учебный проект** — исследование PKI, аппаратного TRNG, firmware hardening, SDD-контрактов и безопасности ядра Linux. Не предназначен для production без независимого аудита безопасности.
+> ⚠️ **Research project** — исследование PKI, аппаратного TRNG, firmware hardening, SDD-контрактов и безопасности ядра Linux. Не проходил независимый аудит безопасности.
 
 PKI-сервер + менеджер ключей на RK3328 (ARM64, Linux 5.10) с STM32G431 в качестве аппаратного источника энтропии (TRNG через USB HID). Полная цепочка энтропии от кремния до X.509 сертификатов за ~$130.
 
@@ -21,16 +21,12 @@ PKI-сервер + менеджер ключей на RK3328 (ARM64, Linux 5.10)
 
 Этот проект связывает низкоуровневое железо с полным PKI стеком:
 
-- **Аппаратная энтропия** — STM32 TRNG (G474/G431/H750) подаёт реальную физическую случайность в OpenSSL RAND pool. Не `os.urandom()`.
-- **Firmware hardening** — 12 уязвимостей закрыты по NIST 800-90B: проверки HAL return values, мониторинг здоровья RNG, startup KAT, IWDG watchdog, восстановление после ошибок. Ноль открытых.
-- **NIST DRBG** — HMAC-DRBG SP 800-90A поверх аппаратной энтропии с continuous health checks.
-- **Полный PKI** — церемония CA, выпуск X.509, CRL, OCSP. REST API + CLI.
-- **Hardening ядра** — кастомное ядро Linux 5.10 с SELinux MAC + eBPF фильтрами на Firefly AIO-RK3328-JD4.
-- **Железо за ~$130** — RK3328 SBC (~$111) + STM32 плата (~$18). Без HSM за $10k.
-- **SDD-контракты** — формальная верификация через Design by Contract: `crypto-engine.contract.yaml` (PKI host) + `trng_hid.contract.yaml` (firmware) + drift detection в CI.
-- **FIPS 140-2** — KAT self-tests, зануление ключей, документация Security Policy (учебный уровень).
-- **Тесты** — 99+ тестов: 62 contract (mock→real), 15 hardware TRNG, security enforcement, e2e.
-- **Задеплоен** — работает на реальном ARM64 железе: 15.6 КБ/с аппаратной энтропии, 15мс latency API.
+- **Аппаратная энтропия** — STM32 TRNG (G474/G431/H750) подаёт физическую случайность в OpenSSL RAND pool. Не `os.urandom()`.
+- **Firmware hardening** — 12 уязвимостей закрыты по NIST 800-90B: health checks, startup KAT, watchdog. Ноль открытых.
+- **Полный PKI стек** — церемония CA, выпуск X.509 (server/client/firmware), CRL, OCSP. REST API + CLI.
+- **Hardening ядра** — кастомное ядро Linux 5.10: SELinux MAC (2 домена) + eBPF фильтры + systemd sandboxing.
+- **SDD-контракты** — Design by Contract для PKI host и firmware + drift detection в CI.
+- **$129 за всё** — RK3328 SBC + STM32 плата. Задеплоен на реальном ARM64: 15.6 КБ/с энтропии, 1.6с на сертификат.
 
 ---
 
@@ -76,6 +72,24 @@ graph TB
     KEYS --> CA_KEYS
     CERT --> DB
 ```
+
+## 📚 Документация
+
+Полная архитектурная документация в нарративном стиле — каждый документ объясняет не «что», а «почему».
+
+| # | Документ | О чём |
+|---|----------|-------|
+| 1 | [C4 Context](docs/C4_CONTEXT.md) | Система снаружи: 4 актора, 3 границы доверия |
+| 2 | [C4 Container](docs/C4_CONTAINER.md) | Система внутри: 5 слоёв, путь запроса через 11 шагов |
+| 3 | [Component Overview](docs/COMPONENT_OVERVIEW.md) | Анатомия: каждый из 16 компонентов — зачем и почему |
+| 4 | [Class Diagram](docs/CLASS_DIAGRAM_PKI.md) | 14 классов, цепочка доверия от теплового шума к сертификату |
+| 5 | [Sequence Flows](docs/SEQUENCE_PKI_FLOW.md) | 5 историй: startup, ceremony, issuance, revocation, entropy |
+| 6 | [Deployment Diagram](docs/DEPLOYMENT_DIAGRAM.md) | Железо: STM32 + RK3328 + USB, $129 за PKI |
+| 7 | [Deployment Guide](docs/DEPLOYMENT_GUIDE.md) | 10 шагов от голого железа до первого сертификата |
+
+→ [Полный индекс документации](docs/README.md)
+
+---
 
 ## Цепочка энтропии
 
@@ -201,7 +215,8 @@ hw.pki-on-box/
 ├── enclosure/
 │   └── pcb/               ← PCB layout, gerbers, BOM
 ├── image/                  ← Конфиг ядра Linux (5.10)
-└── docs/
+└── docs/                   ← Архитектурная документация (C4, Class, Sequence, Deployment)
+    └── README.md           ← Индекс документации с порядком чтения
 ```
 
 ---
