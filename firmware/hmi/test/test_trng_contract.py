@@ -96,11 +96,13 @@ class TestFillReport:
         for i, r in enumerate(reports):
             assert len(r) == REPORT_SIZE, f"report #{i}: {len(r)} != {REPORT_SIZE}"
 
-    def test_report_id(self, reports):
-        """postcondition: report[0] == 0x01 (HID Report ID).
-        GAP G10: текущий firmware НЕ ставит Report ID."""
-        for i, r in enumerate(reports):
-            assert r[0] == 0x01, f"report #{i}: report[0]={r[0]:#04x}, expected 0x01 (G10)"
+    def test_no_report_id(self, reports):
+        """postcondition: report[0] — random entropy byte (no Report ID prefix).
+        Fixed in SESSION_52: removed report_id=0x01 bias."""
+        byte0_values = set(r[0] for r in reports)
+        assert len(byte0_values) > 1, (
+            f"report[0] always = {reports[0][0]:#04x} — possible Report ID leak"
+        )
 
     def test_no_all_zeros(self, reports):
         """invariant: ни один report не должен быть полностью нулевым."""

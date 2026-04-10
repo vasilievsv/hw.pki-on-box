@@ -6,12 +6,26 @@
 
 static IWDG_HandleTypeDef hiwdg;
 
-void Error_Handler(void) {                                           /* G3 */
-    __disable_irq();
-    while (1) {
-        HAL_GPIO_TogglePin(BSP_LED_PORT, BSP_LED_PIN);
-        for (volatile uint32_t i = 0; i < 100000; i++);
+volatile uint32_t g_last_error = 0;
+
+static void blink_sos(void) {
+    static const uint8_t sos[] = {1,1,1,3,3,3,1,1,1};
+    for (uint8_t i = 0; i < sizeof(sos); i++) {
+        HAL_GPIO_WritePin(BSP_LED_PORT, BSP_LED_PIN, GPIO_PIN_SET);
+        for (volatile uint32_t d = 0; d < sos[i] * 60000; d++);
+        HAL_GPIO_WritePin(BSP_LED_PORT, BSP_LED_PIN, GPIO_PIN_RESET);
+        for (volatile uint32_t d = 0; d < 60000; d++);
     }
+}
+
+void Error_Handler_Ex(uint32_t code) {
+    __disable_irq();
+    g_last_error = code;
+    while (1) { blink_sos(); }
+}
+
+void Error_Handler(void) {
+    Error_Handler_Ex(0xFF);
 }
 
 void SystemClock_Config(void);
@@ -32,6 +46,12 @@ static uint8_t hid_report_desc[] = {
     0x75, 0x08,
     0x95, 0x40,
     0x81, 0x02,
+    0x09, 0x02,
+    0x15, 0x00,
+    0x26, 0xFF, 0x00,
+    0x75, 0x08,
+    0x95, 0x40,
+    0x91, 0x02,
     0xC0
 };
 

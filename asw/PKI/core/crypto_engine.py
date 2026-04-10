@@ -1,3 +1,5 @@
+import logging
+
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa, ec, padding
@@ -5,6 +7,8 @@ from cryptography.hazmat.primitives.asymmetric.ec import SECP384R1
 from cryptography.hazmat.bindings.openssl.binding import Binding
 
 from .drbg import NISTDRBG
+
+audit_log = logging.getLogger("pki.crypto_engine")
 
 _EC_CURVES = {
     "P-384": SECP384R1(),
@@ -34,6 +38,7 @@ class CryptoEngine:
             public_exponent=65537,
             key_size=bits or self._rsa_bits,
         )
+        audit_log.info("generate_rsa_keypair bits=%d", bits or self._rsa_bits)
         return key, key.public_key()
 
     def generate_ec_keypair(self, curve: str = None):
@@ -42,6 +47,7 @@ class CryptoEngine:
         if curve_obj is None:
             raise ValueError(f"Unsupported curve: {curve or self._ec_curve}")
         key = ec.generate_private_key(curve_obj)
+        audit_log.info("generate_ec_keypair curve=%s", curve or self._ec_curve)
         return key, key.public_key()
 
     # -- certificate ----------------------------------------------------------
@@ -74,5 +80,9 @@ class CryptoEngine:
 
     def sign_data(self, key, data: bytes) -> bytes:
         if isinstance(key, ec.EllipticCurvePrivateKey):
-            return key.sign(data, ec.ECDSA(hashes.SHA256()))
-        return key.sign(data, padding.PKCS1v15(), hashes.SHA256())
+            sig = key.sign(data, ec.ECDSA(hashes.SHA256()))
+            audit_log.info("sign_data algo=ECDSA-SHA256 data_len=%d", len(data))
+            return sig
+        sig = key.sign(data, padding.PKCS1v15(), hashes.SHA256())
+        audit_log.info("sign_data algo=RSA-PKCS1v15-SHA256 data_len=%d", len(data))
+        return sig

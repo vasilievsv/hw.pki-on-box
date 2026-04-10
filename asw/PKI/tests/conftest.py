@@ -2,6 +2,8 @@ import os
 import pytest
 
 from core import build_core
+from core.trng import HardwareTRNG, TRNGDeviceError
+from core.drbg import NISTDRBG
 from storage.database import PKIDatabase
 from storage.file_storage import CertificateFileStorage
 from services.ca_service import CertificateAuthorityService
@@ -9,6 +11,10 @@ from services.certificate_service import CertificateService
 from services.crl_service import CRLService
 from services.ocsp_service import OCSPResponder
 from api.rest_api import PKIRestAPI
+
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", "hardware: requires real STM32 TRNG via USB HID")
 
 
 @pytest.fixture(scope="session")
@@ -27,6 +33,38 @@ def cfg(tmp_path_factory):
             "ca_key_password": "test-ca-key",
         },
     }
+
+
+@pytest.fixture(scope="session")
+def hw_cfg(tmp_path_factory):
+    base = tmp_path_factory.mktemp("pki_hw")
+    return {
+        "trng": {"mode": "hardware", "hid_vid": "0x0483", "hid_pid": "0x5750"},
+        "drbg": {"algorithm": "hmac-sha256", "reseed_interval": 1000, "personalization": ""},
+        "crypto": {"rsa_key_size": 2048, "ec_curve": "P-384", "aes_key_size": 256},
+        "storage": {
+            "path": str(base / "keys"),
+            "backend": "file",
+            "db_path": str(base / "pki.db"),
+            "certs_path": str(base / "certs"),
+            "ca_key_password": "test-hw-key",
+        },
+    }
+
+
+@pytest.fixture(scope="session")
+def hw_trng(hw_cfg):
+    try:
+        return HardwareTRNG(hw_cfg)
+    except TRNGDeviceError:
+        pytest.skip("Hardware TRNG not found (VID=0x0483 PID=0x5750)")
+
+
+@pytest.fixture(scope="session")
+def hw_drbg(hw_trng, hw_cfg):
+    d = NISTDRBG(hw_trng, hw_cfg)
+    d.instantiate()
+    return d
 
 
 @pytest.fixture(scope="session")

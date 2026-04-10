@@ -185,6 +185,8 @@ static uint8_t USBD_CUSTOM_HID_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
     if (pdev->pClassData == NULL) { return (uint8_t)USBD_FAIL; }
     hhid = (USBD_CUSTOM_HID_HandleTypeDef *)pdev->pClassData;
     ((USBD_CUSTOM_HID_ItfTypeDef *)pdev->pUserData)->OutEvent(hhid->Report_buf);
+    (void)USBD_LL_PrepareReceive(pdev, CUSTOM_HID_EPOUT_ADDR,
+                                 hhid->Report_buf, USBD_CUSTOMHID_OUTREPORT_BUF_SIZE);
     return (uint8_t)USBD_OK;
 }
 
