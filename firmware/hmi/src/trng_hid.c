@@ -3,6 +3,8 @@
 
 static RNG_HandleTypeDef hrng;
 static uint32_t trng_prev = 0;
+static uint8_t trng_rep_count = 0;
+#define TRNG_REP_LIMIT 4
 
 void TRNG_Init(void) {
     RCC_PeriphCLKInitTypeDef clk = {0};
@@ -20,10 +22,13 @@ void TRNG_Init(void) {
 }
 
 void TRNG_StartupTest(void) {                                       /* G4: TSR-1 */
-    uint32_t val;
-    if (HAL_RNG_GenerateRandomNumber(&hrng, &val) != HAL_OK) Error_Handler();
-    if (val == 0x00000000U || val == 0xFFFFFFFFU) Error_Handler();
-    trng_prev = val;
+    uint32_t v1, v2;
+    if (HAL_RNG_GenerateRandomNumber(&hrng, &v1) != HAL_OK) Error_Handler();
+    if (HAL_RNG_GenerateRandomNumber(&hrng, &v2) != HAL_OK) Error_Handler();
+    if (v1 == 0x00000000U || v1 == 0xFFFFFFFFU) Error_Handler();
+    if (v2 == 0x00000000U || v2 == 0xFFFFFFFFU) Error_Handler();
+    if (v1 == v2) Error_Handler();
+    trng_prev = v2;
 }
 
 void TRNG_StatusCheck(void) {                                        /* G2: SECS/CECS */
@@ -38,7 +43,13 @@ void TRNG_FillReport(uint8_t *report, uint16_t len) {
         uint32_t rnd;
         if (HAL_RNG_GenerateRandomNumber(&hrng, &rnd) != HAL_OK)    /* G1 */
             Error_Handler();
-        if (rnd == trng_prev) Error_Handler();                       /* G6: TSR-2 continuous */
+        if (rnd == trng_prev) Error_Handler();                       /* G6: TSR-2 repetition */
+        if ((rnd >> 24) == (trng_prev >> 24)) {                      /* G6: adaptive proportion */
+            trng_rep_count++;
+            if (trng_rep_count >= TRNG_REP_LIMIT) Error_Handler();
+        } else {
+            trng_rep_count = 0;
+        }
         trng_prev = rnd;
         uint16_t copy = ((i + 4) <= len) ? 4 : (len - i);
         memcpy(&report[i], &rnd, copy);
