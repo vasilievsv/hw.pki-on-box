@@ -1,63 +1,40 @@
-[🇬🇧 English](README.md) | [🇷🇺 Русский](README_RU.md) | [🇫🇷 Français](README_FR.md) | [🇨🇳 简体中文](README_ZH.md)
+[🇷🇺 Русский](README.md) | [🇬🇧 English](README_EN.md) | [🇫🇷 Français](README_FR.md) | [🇨🇳 简体中文](README_ZH.md)
 
 # hw.pki-on-box
 
-> ⚠️ **Educational project** — exploring PKI, hardware TRNG, SDD contracts and Linux kernel security. Not intended for production use without independent security audit.
+[![CI](https://github.com/vasilievsv/hw.pki-on-box/actions/workflows/ci.yml/badge.svg)](https://github.com/vasilievsv/hw.pki-on-box/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.6%2B-blue.svg)](https://www.python.org/)
+[![Platform](https://img.shields.io/badge/platform-ARM64%20%7C%20x86__64-lightgrey.svg)]()
+[![Hardware](https://img.shields.io/badge/hardware-RK3328%20%2B%20STM32-orange.svg)]()
+[![FIPS](https://img.shields.io/badge/FIPS%20140--2-educational-green.svg)]()
+[![Tests](https://img.shields.io/badge/tests-99%2B%20passed-brightgreen.svg)]()
+[![Stars](https://img.shields.io/github/stars/vasilievsv/hw.pki-on-box?style=social)](https://github.com/vasilievsv/hw.pki-on-box)
 
-PKI server + key manager running on RK3328 (ARM64, Linux) with STM32 as hardware entropy source (TRNG via USB HID). Full entropy chain from silicon to X.509 certificates for $50.
+> ⚠️ **Учебный проект** — исследование PKI, аппаратного TRNG, firmware hardening, SDD-контрактов и безопасности ядра Linux. Не предназначен для production без независимого аудита безопасности.
 
-## Why this is different
+PKI-сервер + менеджер ключей на RK3328 (ARM64, Linux 5.10) с STM32G431 в качестве аппаратного источника энтропии (TRNG через USB HID). Полная цепочка энтропии от кремния до X.509 сертификатов за ~$130.
 
-Most "PKI on GitHub" repos are key generators with a REST API wrapper. That's not PKI.
+## Чем отличается
 
-This project connects low-level hardware to a full PKI stack:
+Большинство «PKI на GitHub» — это генераторы ключей с REST API обёрткой. Это не PKI.
 
-- **Hardware entropy** — STM32 TRNG (G474/G431/H750) feeds real physical randomness into OpenSSL RAND pool. Not `os.urandom()`.
-- **NIST DRBG** — HMAC-DRBG SP 800-90A on top of hardware entropy, with health checks.
-- **Full PKI** — CA ceremony, X.509 issuance, CRL, OCSP. REST API + CLI.
-- **$50 hardware** — RK3328 SBC ($35) + STM32 board ($12). No $10k HSM required.
-- **SDD contracts** — firmware verified through Design by Contract (YAML phases/pre/post/invariants) + drift detection.
-- **FIPS 140-2** — KAT self-tests, key zeroization, Security Policy documentation (educational level).
-- **Tested** — 62 contract tests (mock→real), 99 total tests, GitHub Actions CI.
-- **Deployed** — running on real ARM64 hardware with 16 KB/s hardware entropy, 15ms API latency.
+Этот проект связывает низкоуровневое железо с полным PKI стеком:
 
-The entropy chain from silicon to OpenSSL is documented and open. That's rare.
-
-## What it does
-
-- Runs on RK3328 ARM64 SBC (natively, no Docker)
-- Uses STM32 as hardware random number generator (USB HID, 16 KB/s)
-- Performs Root CA ceremony with hardware TRNG
-- Issues X.509 certificates via REST API (1.6s) and CLI
-- FIPS 140-2 KAT self-tests + key zeroization
-- SDD contract for firmware TRNG (trng_hid.contract.yaml)
-- Multi-board firmware support (STM32G474 / G431 / H750)
-- BSW hardening with graceful degradation (SELinux + eBPF planned for kernel 5.x)
+- **Аппаратная энтропия** — STM32 TRNG (G474/G431/H750) подаёт реальную физическую случайность в OpenSSL RAND pool. Не `os.urandom()`.
+- **Firmware hardening** — 12 уязвимостей закрыты по NIST 800-90B: проверки HAL return values, мониторинг здоровья RNG, startup KAT, IWDG watchdog, восстановление после ошибок. Ноль открытых.
+- **NIST DRBG** — HMAC-DRBG SP 800-90A поверх аппаратной энтропии с continuous health checks.
+- **Полный PKI** — церемония CA, выпуск X.509, CRL, OCSP. REST API + CLI.
+- **Hardening ядра** — кастомное ядро Linux 5.10 с SELinux MAC + eBPF фильтрами на Firefly AIO-RK3328-JD4.
+- **Железо за ~$130** — RK3328 SBC (~$111) + STM32 плата (~$18). Без HSM за $10k.
+- **SDD-контракты** — формальная верификация через Design by Contract: `crypto-engine.contract.yaml` (PKI host) + `trng_hid.contract.yaml` (firmware) + drift detection в CI.
+- **FIPS 140-2** — KAT self-tests, зануление ключей, документация Security Policy (учебный уровень).
+- **Тесты** — 99+ тестов: 62 contract (mock→real), 15 hardware TRNG, security enforcement, e2e.
+- **Задеплоен** — работает на реальном ARM64 железе: 15.6 КБ/с аппаратной энтропии, 15мс latency API.
 
 ---
 
-## Implementation status
-
-| Component | Status |
-|-----------|--------|
-| core: TRNG / DRBG / CryptoEngine / KeyStorage | ✅ done |
-| services: CA / Cert / CRL / OCSP | ✅ done |
-| storage: SQLite + FileStorage | ✅ done |
-| REST API (Flask) + CLI (Click) | ✅ done |
-| Contract tests W1-W2 (62 real tests) | ✅ done |
-| FIPS 140-2 (KAT, zeroization, Security Policy) | ✅ done |
-| GitHub Actions CI/CD + drift_check | ✅ done |
-| STM32 firmware (multi-board G474/G431/H750) | ✅ done |
-| SDD firmware contract (trng_hid.contract.yaml) | ✅ done |
-| Deploy on RK3328 (native, systemd) | ✅ done |
-| HW TRNG validation on target (16 KB/s) | ✅ done |
-| BSW hardening (graceful degradation) | ✅ done |
-| SELinux + eBPF (full, requires kernel 5.x) | 📋 planned |
-| Contract tests W3 (Linux-only) | 📋 planned |
-
----
-
-## Architecture
+## Архитектура
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#ffffff', 'primaryTextColor': '#000000', 'primaryBorderColor': '#000000', 'lineColor': '#000000', 'secondaryColor': '#f0f0f0', 'tertiaryColor': '#ffffff', 'background': '#ffffff', 'mainBkg': '#ffffff', 'nodeBorder': '#000000', 'clusterBkg': '#f8f8f8', 'clusterBorder': '#000000', 'titleColor': '#000000', 'edgeLabelBackground': '#ffffff'}}}%%
@@ -66,7 +43,7 @@ graph TB
         TRNG_HW[Hardware RNG] --> USB_HID[USB HID streamer]
     end
 
-    subgraph SBC["RK3328 · ARM64 Linux"]
+    subgraph SBC["RK3328 · ARM64 · Linux 5.10"]
         subgraph ASW["asw/PKI · Python daemon"]
             TRNG[core/trng.py]
             DRBG[core/drbg.py]
@@ -81,9 +58,10 @@ graph TB
             KEYS --> CA
         end
 
-        subgraph BSW["bsw/ · Linux kernel"]
-            SELINUX[SELinux]
-            EBPF[eBPF]
+        subgraph BSW["bsw/ · Kernel hardening"]
+            SELINUX[SELinux MAC]
+            EBPF[eBPF filters]
+            SYSTEMD[systemd isolation]
         end
     end
 
@@ -93,35 +71,110 @@ graph TB
         CA_KEYS ~~~ DB
     end
 
-    USB_HID -->|entropy| TRNG
-    BSW -. isolates .-> ASW
+    USB_HID -->|"entropy 15.6 KB/s"| TRNG
+    BSW -. "isolates + filters" .-> ASW
     KEYS --> CA_KEYS
     CERT --> DB
 ```
 
-## Entropy chain
-
-Hardware entropy from STM32 is injected into the OpenSSL RAND pool before every key generation:
+## Цепочка энтропии
 
 ```
-STM32 RNG peripheral (USB HID 0x0483:0x5750)
-    └─ HardwareTRNG.get_entropy()     64 bytes / call, 16 KB/s
+STM32 RNG периферия (USB HID 0x0483:0x5750)
+    └─ HardwareTRNG.get_entropy()     64 байта / вызов, 15.6 КБ/с
         └─ NISTDRBG.generate()        HMAC-DRBG SP 800-90A
             └─ RAND_add()             → OpenSSL RAND pool
                 └─ rsa/ec.generate_private_key()
 ```
 
-Configurable via `trng.mode: hardware | auto | software`.
+Настраивается через `trng.mode: hardware | auto | software`.
 
-## Project structure
+## Hardening ядра
+
+Ядро 5.10 пересобрано из исходников Rockchip BSP с тремя слоями защиты. Каждый слой работает независимо — компрометация одного не отключает остальные.
+
+Схема читается как поток сверху вниз: трафик входит → eBPF фильтрует → SELinux ограничивает → systemd изолирует → два сервиса (PKI + HSM) → данные.
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#ffffff', 'primaryTextColor': '#000000', 'primaryBorderColor': '#000000', 'lineColor': '#000000', 'secondaryColor': '#f0f0f0', 'tertiaryColor': '#ffffff', 'background': '#ffffff', 'mainBkg': '#ffffff', 'nodeBorder': '#000000', 'clusterBkg': '#f8f8f8', 'clusterBorder': '#000000', 'titleColor': '#000000', 'edgeLabelBackground': '#ffffff'}}}%%
+graph TB
+    NET["Сетевой трафик"] -->|"ingress"| EBPF
+    USER["Пользователь / API клиент"] -->|"запрос"| EBPF
+
+    subgraph KERNEL["Linux 5.10 · Firefly AIO-RK3328-JD4"]
+        EBPF["eBPF · whitelist портов + фильтр syscall"]
+        SELINUX["SELinux · изоляция процессов + контроль файлов"]
+        SYSD["systemd · PrivateTmp, NoNewPrivileges, DeviceAllow"]
+
+        EBPF -->|"разрешённый трафик"| SELINUX
+        SELINUX -->|"ограниченный процесс"| SYSD
+    end
+
+    SYSD -->|"pki.service"| PKI["PKI daemon · REST API"]
+    SYSD -->|"hsm.service"| HSM["STM32 TRNG · /dev/hidraw0"]
+    PKI -->|"ключи + сертификаты"| DATA[("/opt/pki-on-box/data")]
+```
+
+| Слой | Механизм | Что защищает |
+|------|----------|-------------|
+| L1 — eBPF | `network_filter.c` — whitelist портов + rate limit; `syscall_filter.c` — whitelist syscall | Фильтрует трафик и системные вызовы до того, как они дойдут до PKI daemon |
+| L2 — SELinux | `pki-box.te/fc/if` — type enforcement, file contexts | Ограничивает процессы PKI: доступ только к своим файлам, портам, устройствам |
+| L3 — systemd | `pki.service` — PrivateTmp, ProtectSystem; `hsm.service` — DeviceAllow | Изолирует сервисы: отдельные namespace, запрет эскалации привилегий |
+
+## Firmware hardening (NIST 800-90B)
+
+12 уязвимостей выявлены и закрыты в firmware STM32 TRNG:
+
+| # | Уязвимость | Серьёзность | Исправлено |
+|---|-----------|-------------|------------|
+| G1 | HAL_RNG_GenerateRandomNumber — return value не проверяется | 🔴 CRITICAL | ✅ |
+| G2 | Нет проверки RNG_SR.SECS/CECS | 🔴 CRITICAL | ✅ |
+| G4 | Нет startup self-test (KAT/TSR-1) | 🔴 CRITICAL | ✅ |
+| G6 | Нет continuous health check (TSR-2) | 🔴 CRITICAL | ✅ |
+| G8 | HAL_RNG_Init — return value не проверяется | 🔴 CRITICAL | ✅ |
+| G13 | HID OUT endpoint не re-arm после SendReport | 🔴 CRITICAL | ✅ |
+| G3 | Error_Handler = while(1) без диагностики | 🟡 HIGH | ✅ |
+| G5 | Нет watchdog для зависания RNG | 🟡 HIGH | ✅ |
+| G7 | HAL_RCCEx — return value не проверяется | 🟡 HIGH | ✅ |
+| G9 | Main loop без rate limiting | 🟡 MEDIUM | ✅ |
+| G10 | Report ID bias в report[0] | 🟡 MEDIUM | ✅ |
+| G11 | Нет RNG IRQ handler (polling OK) | ℹ️ INFO | — |
+
+---
+
+## Статус реализации
+
+| Компонент | Статус |
+|-----------|--------|
+| core: TRNG / DRBG / CryptoEngine / KeyStorage | ✅ готово |
+| services: CA / Cert / CRL / OCSP | ✅ готово |
+| storage: SQLite + FileStorage | ✅ готово |
+| REST API (Flask) + CLI (client) | ✅ готово |
+| Contract-тесты W1-W2 (62 реальных теста) | ✅ готово |
+| Contract-тесты W3 (SELinux/eBPF, e2e) | ✅ готово |
+| HW TRNG contract-тесты (15/15 passed) | ✅ готово |
+| FIPS 140-2 (KAT, зануление, Security Policy) | ✅ готово |
+| GitHub Actions CI/CD + drift_check | ✅ готово |
+| Firmware STM32 (multi-board G474/G431/H750) | ✅ готово |
+| Firmware hardening (12 gaps, NIST 800-90B) | ✅ готово |
+| SDD-контракты (crypto-engine + trng_hid) | ✅ готово |
+| Деплой на RK3328 (нативный, systemd) | ✅ готово |
+| Кастомное ядро 5.10 (SELinux + eBPF + USB2 PHY) | ✅ готово |
+| Валидация HW TRNG на железке (15.6 КБ/с) | ✅ готово |
+| BSW hardening (graceful degradation) | ✅ готово |
+
+---
+
+## Структура проекта
 
 ```
 hw.pki-on-box/
-├── .github/workflows/     ← CI/CD (GitHub Actions)
+├── .github/workflows/     ← CI/CD (lint, test, drift_check, security)
 ├── firmware/
 │   └── hmi/               ← STM32 TRNG streamer (USB HID, multi-board)
-│       ├── src/            ← main.c, trng_hid.c, board_config.h
-│       ├── boards/         ← G431, H750 board definitions
+│       ├── src/            ← main.c, trng_hid.c, trng_hid_dbc.c, board_config.h
+│       ├── boards/         ← G431, G474, H750 board definitions
+│       ├── test/           ← HW contract-тесты, диагностика
 │       └── platformio.ini  ← G474, G431, H750 environments
 ├── asw/
 │   └── PKI/               ← Python PKI daemon
@@ -130,23 +183,30 @@ hw.pki-on-box/
 │       ├── storage/        ← database, file_storage
 │       ├── security/       ← security_manager (graceful degradation)
 │       ├── api/            ← rest_api.py, cli.py
-│       ├── tests/          ← pytest (62 contract + 37 unit)
+│       ├── tests/          ← pytest (62 contract + 15 HW + unit)
 │       ├── serve.py        ← REST API entrypoint
 │       └── pki.py          ← CLI entrypoint
 ├── bsw/
-│   ├── ebpf/              ← network_filter, syscall_filter
-│   ├── selinux/           ← SELinux policies (pki-box.te/fc/if)
+│   ├── ebpf/              ← network_filter.c, syscall_filter.c
+│   ├── selinux/           ← pki-box.te/fc/if (MAC политики)
 │   └── systemd/           ← pki.service, hsm.service
 ├── deploy/
-│   ├── deploy.py          ← deployment script (MCP SSH)
+│   ├── deploy.py          ← скрипт деплоя
 │   ├── config.example.yaml
 │   └── requirements-rk3328.txt
+├── scripts/
+│   ├── drift_check_host.py
+│   ├── drift_check_firmware.py
+│   └── drift_check_cross.py
+├── enclosure/
+│   └── pcb/               ← PCB layout, gerbers, BOM
+├── image/                  ← Конфиг ядра Linux (5.10)
 └── docs/
 ```
 
 ---
 
-## Quick start
+## Быстрый старт
 
 ```bash
 pip install -r asw/PKI/requirements.txt
@@ -154,7 +214,7 @@ pip install -r asw/PKI/requirements.txt
 cd asw/PKI
 python serve.py
 
-# Run with software TRNG (no USB HID needed)
+# Запуск с программным TRNG (без USB HID)
 PKI_TRNG_MODE=software python serve.py
 ```
 
@@ -162,30 +222,30 @@ PKI_TRNG_MODE=software python serve.py
 
 ## REST API
 
-Base URL: `http://localhost:5000/api/v1`
+Базовый URL: `http://localhost:5000/api/v1`
 
 ```bash
 # Health check
 curl /api/v1/health
 
-# Create Root CA
+# Создать Root CA
 curl -X POST /api/v1/ca/root \
   -H "Content-Type: application/json" \
   -d '{"name": "My Root CA", "validity_years": 20}'
 
-# Issue server certificate
+# Выпустить серверный сертификат
 curl -X POST /api/v1/certs/server \
   -d '{"common_name": "device.local", "san_dns": ["device.local"], "ca_id": "ca_my_root_ca"}'
 
-# List CAs / certificates
+# Список CA / сертификатов
 curl /api/v1/ca
 curl /api/v1/certs
 
-# Revoke certificate
+# Отозвать сертификат
 curl -X POST /api/v1/crl/revoke \
   -d '{"serial": "<hex>", "ca_id": "ca_my_root_ca"}'
 
-# Get CRL / OCSP
+# Получить CRL / OCSP
 curl /api/v1/crl/ca_my_root_ca
 curl /api/v1/ocsp/<serial_hex>
 ```
@@ -206,52 +266,85 @@ python pki.py crl generate --ca ca_my_root_ca --out crl.pem
 
 ---
 
-## Testing
+## Тестирование
 
 ```bash
 pip install -r asw/PKI/requirements-dev.txt
+
+# Все тесты (software TRNG)
 PKI_TRNG_MODE=software pytest asw/PKI/tests/ -v
-# Result: 99 passed
+# Результат: 99+ passed
+
+# Hardware TRNG тесты (нужен STM32)
+PKI_TRNG_MODE=hardware pytest asw/PKI/tests/ -v -k "hardware"
+# Результат: 15/15 passed
 ```
 
 ---
 
-## Configuration
+## Конфигурация
 
-| Variable | Default | Description |
-|----------|---------|-------------|
+| Переменная | По умолчанию | Описание |
+|------------|-------------|----------|
 | `PKI_TRNG_MODE` | `auto` | `auto` / `hardware` / `software` |
-| `PKI_STORAGE_PATH` | `storage/keys` | key storage path |
-| `PKI_DB_PATH` | `storage/pki.db` | SQLite database path |
+| `PKI_STORAGE_PATH` | `storage/keys` | путь к хранилищу ключей |
+| `PKI_DB_PATH` | `storage/pki.db` | путь к базе SQLite |
 
 ---
 
-## Deploy on ARM64
+## Деплой на ARM64
 
-Target: RK3328 (Cortex-A53, 2GB RAM, Ubuntu 18.04, Python 3.6)
+Целевая платформа: Firefly AIO-RK3328-JD4 (Cortex-A53, 2GB RAM, Linux 5.10, Python 3.6)
 
 ```bash
-# On target
+# На целевом устройстве
 python3 -m venv /opt/pki-on-box/venv
 source /opt/pki-on-box/venv/bin/activate
 pip install -r deploy/requirements-rk3328.txt
 
-# From dev machine (via MCP SSH or rsync)
-# Upload asw/PKI/ → /opt/pki-on-box/app/
+# С машины разработки (через MCP SSH или rsync)
+# Загрузить asw/PKI/ → /opt/pki-on-box/app/
 # systemctl restart pki
 ```
 
 ---
 
-## Standards
+## Железо
 
-- NIST SP 800-90A (HMAC-DRBG)
-- NIST SP 800-90B (entropy source health tests)
-- FIPS 140-2 (KAT, zeroization, Security Policy — educational level)
-- ISO 26262 ASIL A (educational level)
+| Компонент | Модель | Роль | Цена |
+|-----------|--------|------|------|
+| SBC | Firefly AIO-RK3328-JD4 | Хост PKI daemon (ARM64, 2GB) | ~$111 |
+| TRNG | STM32G431 (WeAct) | Аппаратный источник энтропии (USB HID) | ~$18 |
+| Итого | | | ~$129 |
+
+Поддерживаемые платы STM32: G474 (reference), G431 (primary), H750 (experimental).
 
 ---
 
-## License
+## Производительность
 
-Educational project. See [LICENSE](LICENSE) for details.
+| Метрика | Значение |
+|---------|----------|
+| TRNG throughput | 15.6 КБ/с |
+| TRNG health (χ²) | 253 (лимит: 310) |
+| TRNG bit ratio | 0.517 (цель: 0.40–0.60) |
+| API GET latency | 15мс |
+| Выпуск сертификата | 1.6с |
+| FIPS KAT | 6/6 алгоритмов |
+| Firmware gaps | 0 открытых (12/12 закрыты) |
+
+---
+
+## Стандарты
+
+- NIST SP 800-90A (HMAC-DRBG)
+- NIST SP 800-90B (health tests источника энтропии)
+- FIPS 140-2 (KAT, зануление, Security Policy — учебный уровень)
+- ISO 26262 ASIL A (учебный уровень)
+- SDD / Design by Contract (верификация PKI host + firmware)
+
+---
+
+## Лицензия
+
+Apache-2.0. См. [LICENSE](LICENSE).
