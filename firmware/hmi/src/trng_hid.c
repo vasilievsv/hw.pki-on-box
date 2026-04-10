@@ -47,8 +47,7 @@ void TRNG_StatusCheck(void) {
 }
 
 void TRNG_FillReport(uint8_t *report, uint16_t len) {
-    report[0] = 0x01;
-    for (uint16_t i = 1; i < len; i += 4) {
+    for (uint16_t i = 0; i < len; i += 4) {
         TRNG_StatusCheck();
         uint32_t rnd;
         if (HAL_RNG_GenerateRandomNumber(&hrng, &rnd) != HAL_OK)
