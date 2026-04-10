@@ -54,7 +54,10 @@ def hw_cfg(tmp_path_factory):
 
 @pytest.fixture(scope="session")
 def hw_trng(hw_cfg):
-    return HardwareTRNG(hw_cfg)
+    try:
+        return HardwareTRNG(hw_cfg)
+    except TRNGDeviceError:
+        pytest.skip("Hardware TRNG not found (VID=0x0483 PID=0x5750)")
 
 
 @pytest.fixture(scope="session")
