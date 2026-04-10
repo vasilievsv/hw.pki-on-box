@@ -13,9 +13,8 @@ class TestTrngHidContract:
     def test_enumerate_device(self, hw_trng):
         assert hw_trng.is_hardware_available() is True
 
-    def test_hardware_mode_init(self, hw_cfg):
-        trng = HardwareTRNG(hw_cfg)
-        assert trng._mode == "hardware"
+    def test_hardware_mode_init(self, hw_trng, hw_cfg):
+        assert hw_trng._mode == "hardware"
 
     def test_hardware_mode_rejects_without_device(self):
         cfg = {"trng": {"mode": "hardware", "hid_vid": "0xFFFF", "hid_pid": "0xFFFF"}}
@@ -143,20 +142,20 @@ class TestNist80090bBasic:
 
 class TestKeyStorageWithHwEntropy:
 
-    def test_build_core_hardware(self, hw_cfg):
+    def test_build_core_hardware(self, hw_trng, hw_cfg):
         from core import build_core
         trng, drbg, crypto, storage = build_core(hw_cfg)
         assert trng.is_hardware_available() is True
         assert drbg.initialized is True
 
-    def test_crypto_engine_keygen_hw(self, hw_cfg):
+    def test_crypto_engine_keygen_hw(self, hw_trng, hw_cfg):
         from core import build_core
         trng, drbg, crypto, storage = build_core(hw_cfg)
         priv, pub = crypto.generate_ec_keypair("P-384")
         assert priv is not None
         assert pub is not None
 
-    def test_sign_verify_hw_entropy(self, hw_cfg):
+    def test_sign_verify_hw_entropy(self, hw_trng, hw_cfg):
         from core import build_core
         trng, drbg, crypto, storage = build_core(hw_cfg)
         priv, pub = crypto.generate_ec_keypair("P-384")
