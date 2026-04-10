@@ -5,6 +5,7 @@
 C4 Context — это взгляд с высоты птичьего полёта. Мы не видим классы, не видим модули — мы видим систему как чёрный ящик и задаём вопрос: кто с ней разговаривает и зачем?
 
 ```mermaid
+%%{init: {'theme': 'neutral'}}%%
 graph TB
     admin["PKI Admin<br/><i>CLI: pki.py, ceremony scripts</i>"]
     operator["Deploy Operator<br/><i>deploy.py → SSH/SCP</i>"]

@@ -5,6 +5,7 @@
 Большинство PKI-систем — это софт. Установил на сервер, настроил, забыл. PKI-on-Box — это не софт. Это устройство. Два процессора (ARM Cortex-A53 и Cortex-M4), два мира (Linux и bare metal), один USB-кабель между ними. Deployment-диаграмма показывает не просто «где что запущено», а физическую реальность: какие чипы, какие шины, какие файловые системы.
 
 ```mermaid
+%%{init: {'theme': 'neutral'}}%%
 graph TB
     subgraph dev ["Developer Workstation"]
         fw_build["Firmware Build<br/><i>PlatformIO, CMSIS-DAP</i>"]
