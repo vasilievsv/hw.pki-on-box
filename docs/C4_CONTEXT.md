@@ -1,11 +1,3 @@
----
-type: c4-context
-project: hw.pki-on-box
-date: 2026-04-10
-method: deep+reverse
-style: narrative
----
-
 # C4 Context: PKI-on-Box — система и её окружение
 
 ## О чём эта диаграмма
@@ -13,25 +5,22 @@ style: narrative
 C4 Context — это взгляд с высоты птичьего полёта. Мы не видим классы, не видим модули — мы видим систему как чёрный ящик и задаём вопрос: кто с ней разговаривает и зачем?
 
 ```mermaid
-C4Context
-    title PKI-on-Box — System Context (reverse-engineered)
+graph TB
+    admin["PKI Admin<br/><i>CLI: pki.py, ceremony scripts</i>"]
+    operator["Deploy Operator<br/><i>deploy.py → SSH/SCP</i>"]
+    client["PKI Client<br/><i>REST API consumer</i>"]
+    stm32["STM32 TRNG Device<br/><i>G431/G474/H750, USB HID</i>"]
 
-    Person(admin, "PKI Admin", "CLI: pki.py, ceremony scripts")
-    Person(operator, "Deploy Operator", "deploy.py → SSH/SCP")
+    subgraph box ["PKI-on-Box (RK3328 ARM64)"]
+        pki_core["PKI Core Service<br/><i>Python 3.6, Flask :5000<br/>CA, Certificates, CRL, OCSP</i>"]
+        hsm_svc["HSM Service<br/><i>TRNG→DRBG→CryptoEngine→KeyStorage<br/>DeviceAllow=/dev/hidraw0</i>"]
+        pki_core --- hsm_svc
+    end
 
-    System_Ext(client, "PKI Client", "REST API consumer: issue/revoke/OCSP")
-    System_Ext(stm32, "STM32 TRNG Device", "G431/G474/H750, USB HID, hardware entropy")
-
-    System_Boundary(box, "PKI-on-Box (RK3328 ARM64)") {
-        System(pki_core, "PKI Core Service", "Python 3.6, Flask :5000\nCA, Certificates, CRL, OCSP")
-        System(hsm_svc, "HSM Service", "TRNG→DRBG→CryptoEngine→KeyStorage\nDeviceAllow=/dev/hidraw0")
-    }
-
-    Rel(admin, pki_core, "CLI commands", "local socket / stdin")
-    Rel(client, pki_core, "REST API", "HTTPS :5000")
-    Rel(operator, box, "deploy", "SSH/SCP")
-    Rel(stm32, hsm_svc, "entropy data", "USB HID /dev/hidraw0")
-    Rel(pki_core, hsm_svc, "crypto ops", "unix_stream_socket")
+    admin -->|"CLI commands"| pki_core
+    client -->|"REST API :5000"| pki_core
+    operator -->|"SSH/SCP"| box
+    stm32 -->|"USB HID /dev/hidraw0"| hsm_svc
 ```
 
 ---
