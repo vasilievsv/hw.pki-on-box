@@ -1,11 +1,3 @@
----
-type: deployment-diagram
-project: hw.pki-on-box
-date: 2026-04-10
-method: deep+reverse
-style: narrative
----
-
 # Deployment Diagram: где живёт PKI
 
 ## Предисловие: почему железо имеет значение
@@ -13,55 +5,39 @@ style: narrative
 Большинство PKI-систем — это софт. Установил на сервер, настроил, забыл. PKI-on-Box — это не софт. Это устройство. Два процессора (ARM Cortex-A53 и Cortex-M4), два мира (Linux и bare metal), один USB-кабель между ними. Deployment-диаграмма показывает не просто «где что запущено», а физическую реальность: какие чипы, какие шины, какие файловые системы.
 
 ```mermaid
-C4Deployment
-    title PKI-on-Box Deployment (reverse-engineered)
+graph TB
+    subgraph dev ["Developer Workstation"]
+        fw_build["Firmware Build<br/><i>PlatformIO, CMSIS-DAP</i>"]
+        deployer["deploy.py<br/><i>SSH/SCP, backup, health check</i>"]
+    end
 
-    Deployment_Node(dev, "Developer Workstation", "Windows/Linux") {
-        Deployment_Node(pio, "PlatformIO", "STM32Cube") {
-            Container(fw_build, "Firmware Build", "C, CMSIS-DAP", "TRNG HID streamer")
-        }
-        Deployment_Node(deploy_tool, "Deploy Tool", "Python 3") {
-            Container(deployer, "deploy.py", "SSH/SCP", "backup, upload, restart, health check")
-        }
-    }
+    subgraph stm32_node ["STM32 MCU Board (WeAct Mini)"]
+        fw_g474["TRNG HID Firmware<br/><i>G474 Cortex-M4 170MHz</i>"]
+        fw_g431["TRNG HID Firmware<br/><i>G431 Cortex-M4 170MHz</i>"]
+        fw_h750["TRNG HID Firmware<br/><i>H750 Cortex-M7 480MHz</i>"]
+    end
 
-    Deployment_Node(stm32_node, "STM32 MCU Board", "WeAct Mini") {
-        Deployment_Node(g474, "STM32G474CEU", "Cortex-M4 170MHz\n512KB Flash, 128KB RAM") {
-            Container(fw_g474, "TRNG HID Firmware", "Bare metal", "RNG, USB HID 64B reports\nIWDG, TSR-1/TSR-2, SOS blink")
-        }
-        Deployment_Node(g431, "STM32G431CBU", "Cortex-M4 170MHz\n128KB Flash, 32KB RAM") {
-            Container(fw_g431, "TRNG HID Firmware", "Bare metal", "Same binary, G4 family")
-        }
-        Deployment_Node(h750, "STM32H750VBT", "Cortex-M7 480MHz\n128KB Flash, 1MB RAM") {
-            Container(fw_h750, "TRNG HID Firmware", "Bare metal", "H7 HAL variant")
-        }
-    }
+    subgraph rk3328_node ["RK3328 SBC (ARM64, Linux 5.10)"]
+        subgraph security_layer ["Security"]
+            selinux_d["SELinux — Enforcing"]
+            ebpf_d["eBPF Filters"]
+        end
+        subgraph systemd_layer ["systemd"]
+            pki_svc["pki.service<br/><i>PKI Core + REST :5000</i>"]
+            hsm_svc["hsm.service<br/><i>TRNG bridge, /dev/hidraw0</i>"]
+        end
+        subgraph storage_node ["Storage"]
+            db_d[("pki.db — SQLite")]
+            keys_d["Key Files — .enc"]
+            certs_d["Cert Files — PEM"]
+        end
+    end
 
-    Deployment_Node(rk3328_node, "RK3328 SBC", "ARM64, Linux 5.10\nKernel: custom (USB fix)") {
-        Deployment_Node(os, "Linux OS Layer") {
-            Deployment_Node(security_layer, "Security") {
-                Container(selinux_d, "SELinux", "Enforcing", "pki_core_t, pki_hsm_t")
-                Container(ebpf_d, "eBPF Filters", "Kernel", "network + syscall audit")
-            }
-            Deployment_Node(systemd_layer, "systemd") {
-                Container(pki_svc, "pki.service", "Python 3.6", "PKI Core + REST API :5000\nUser=pki, ProtectSystem=strict")
-                Container(hsm_svc, "hsm.service", "Python 3.6", "HSM/TRNG bridge\nDeviceAllow=/dev/hidraw0")
-            }
-        }
-        Deployment_Node(storage_node, "Storage") {
-            ContainerDb(db_d, "pki.db", "SQLite", "/var/lib/pki/pki.db")
-            Container(keys_d, "Key Files", "AES-256-GCM .enc", "/var/lib/pki/keys/")
-            Container(certs_d, "Cert Files", "PEM", "/var/lib/pki/certs/")
-        }
-    }
-
-    Rel(fw_build, fw_g474, "CMSIS-DAP flash")
-    Rel(deployer, pki_svc, "SSH/SCP")
-    Rel(stm32_node, rk3328_node, "USB HID", "/dev/hidraw0")
-    Rel(hsm_svc, pki_svc, "unix_stream_socket")
-    Rel(pki_svc, db_d, "SQLite")
-    Rel(pki_svc, keys_d, "read/write .enc")
-    Rel(pki_svc, certs_d, "write PEM")
+    fw_build -->|"CMSIS-DAP flash"| fw_g474
+    deployer -->|"SSH/SCP"| pki_svc
+    stm32_node -->|"USB HID /dev/hidraw0"| hsm_svc
+    hsm_svc -->|"unix_stream_socket"| pki_svc
+    pki_svc --> db_d & keys_d & certs_d
 ```
 
 ---

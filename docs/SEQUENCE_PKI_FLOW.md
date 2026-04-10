@@ -1,12 +1,3 @@
----
-type: sequence-diagrams
-project: hw.pki-on-box
-date: 2026-04-10
-method: deep+reverse
-style: narrative
-flows: 5
----
-
 # Sequence Diagrams: пять историй одной системы
 
 ## Предисловие: зачем пять диаграмм

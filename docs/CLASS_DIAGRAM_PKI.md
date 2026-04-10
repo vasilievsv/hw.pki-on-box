@@ -1,13 +1,3 @@
----
-type: class-diagram
-project: hw.pki-on-box
-date: 2026-04-10
-method: deep+reverse
-style: narrative
-classes: 14
-layers: 5
----
-
 # Архитектура классов PKI-on-Box
 
 ## Предисловие: почему именно так

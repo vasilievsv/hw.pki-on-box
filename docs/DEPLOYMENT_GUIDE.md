@@ -1,12 +1,3 @@
----
-type: deployment-guide
-project: hw.pki-on-box
-date: 2026-04-10
-method: deep+reverse
-style: narrative
-steps: 10
----
-
 # Deployment Guide: как собрать PKI за $129
 
 ## Предисловие: это не инструкция, это путешествие

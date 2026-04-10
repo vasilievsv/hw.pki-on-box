@@ -1,11 +1,3 @@
----
-type: c4-container
-project: hw.pki-on-box
-date: 2026-04-10
-method: deep+reverse
-style: narrative
----
-
 # C4 Container: PKI-on-Box — что внутри чёрного ящика
 
 ## О чём эта диаграмма
@@ -13,78 +5,59 @@ style: narrative
 Context показал систему снаружи. Container разрезает её и показывает внутренности: какие процессы работают, какие хранилища используются, как данные текут между ними. Это уровень, на котором принимаются архитектурные решения — и на котором их последствия становятся видны.
 
 ```mermaid
-C4Container
-    title PKI-on-Box — Container Diagram (reverse-engineered)
+graph TB
+    admin["PKI Admin — CLI"]
+    operator["Deploy Operator — SSH/SCP"]
+    client["PKI Client — REST"]
+    stm32["STM32 TRNG — USB HID"]
 
-    Person(admin, "PKI Admin", "CLI")
-    Person(operator, "Deploy Operator", "SSH/SCP")
-    System_Ext(client, "PKI Client", "REST consumer")
-    System_Ext(stm32, "STM32 TRNG", "G431/G474/H750\nUSB HID")
+    subgraph box ["PKI-on-Box (RK3328 ARM64, Linux 5.10)"]
+        subgraph api_layer ["API Layer"]
+            rest_api["REST API<br/>Flask :5000, 12 endpoints"]
+            cli["CLI<br/>Click: ca, cert, crl"]
+        end
+        subgraph services ["Services Layer"]
+            ca_svc["CA Service"]
+            cert_svc["Certificate Service"]
+            crl_svc["CRL Service"]
+            ocsp_svc["OCSP Responder"]
+        end
+        subgraph core ["Core Layer"]
+            self_tests["Self Tests — KAT"]
+            trng["TRNG<br/>HW / SW fallback"]
+            drbg["NIST DRBG<br/>HMAC SP 800-90A"]
+            crypto["CryptoEngine<br/>RSA-4096, EC P-384"]
+            key_store["KeyStorage<br/>AES-256-GCM"]
+        end
+        subgraph storage ["Storage Layer"]
+            db[("PKI Database — SQLite")]
+            file_store["File Storage — PEM/DER"]
+        end
+        subgraph security ["Security Layer"]
+            selinux["SELinux Policy"]
+            ebpf_net["eBPF Network Filter"]
+            ebpf_sys["eBPF Syscall Monitor"]
+            systemd["systemd Sandboxing"]
+        end
+        deploy["Deploy Tool — SSH/SCP"]
+    end
 
-    Container_Boundary(box, "PKI-on-Box (RK3328 ARM64, Linux 5.10)") {
+    admin --> cli
+    client -->|"HTTPS :5000"| rest_api
+    operator --> deploy
+    stm32 -->|"USB HID"| trng
 
-        Container_Boundary(api_layer, "API Layer") {
-            Container(rest_api, "REST API", "Flask :5000", "12 endpoints /api/v1/*")
-            Container(cli, "CLI", "Click", "ca, cert, crl commands")
-        }
+    rest_api --> ca_svc & cert_svc & crl_svc & ocsp_svc
+    cli --> ca_svc & cert_svc & crl_svc
 
-        Container_Boundary(services, "Services Layer") {
-            Container(ca_svc, "CA Service", "Python", "Root/Intermediate CA, sign CSR")
-            Container(cert_svc, "Certificate Service", "Python", "Server/Client/Firmware certs")
-            Container(crl_svc, "CRL Service", "Python", "Revocation, CRL generation")
-            Container(ocsp_svc, "OCSP Responder", "Python", "Certificate status check")
-        }
+    ca_svc --> crypto & key_store & db
+    cert_svc --> crypto & ca_svc & db & file_store
+    crl_svc --> key_store & db
+    ocsp_svc --> crl_svc
 
-        Container_Boundary(core, "Core Layer (Crypto Chain)") {
-            Container(self_tests, "Self Tests (KAT)", "Python", "AES-GCM, HMAC, SHA256, RSA, ECDSA")
-            Container(trng, "TRNG", "Python + HID", "HardwareTRNG / SoftwareTRNG\nhealth_check, get_entropy")
-            Container(drbg, "NIST DRBG", "Python", "HMAC_DRBG SP 800-90A\nreseed_interval=1000")
-            Container(crypto, "CryptoEngine", "Python + OpenSSL", "RSA-4096, EC P-384\nseed OpenSSL RAND pool")
-            Container(key_store, "KeyStorage", "Python", "AES-256-GCM + PBKDF2\nzeroize, .enc files")
-        }
-
-        Container_Boundary(storage, "Storage Layer") {
-            ContainerDb(db, "PKI Database", "SQLite", "ca_certificates\ncertificates\nrevoked_certificates")
-            Container(file_store, "File Storage", "Filesystem", "PEM/DER certs\nby_label/ index")
-        }
-
-        Container_Boundary(security, "Security Layer (BSW)") {
-            Container(selinux, "SELinux Policy", "TE/FC/IF", "pki_core_t ↔ pki_hsm_t\ndomain isolation")
-            Container(ebpf_net, "eBPF Network Filter", "C/BPF", "Socket filter\nport whitelist")
-            Container(ebpf_sys, "eBPF Syscall Monitor", "C/BPF", "Tracepoint audit\nper-PID tracking")
-            Container(systemd, "systemd Sandboxing", "Unit files", "ProtectSystem=strict\nNoNewPrivileges")
-        }
-
-        Container(deploy, "Deploy Tool", "Python", "SSH/SCP, backup\nrollback, health check")
-    }
-
-    Rel(admin, cli, "commands")
-    Rel(client, rest_api, "HTTPS :5000")
-    Rel(operator, deploy, "SSH/SCP")
-    Rel(stm32, trng, "USB HID /dev/hidraw0")
-
-    Rel(rest_api, ca_svc, "")
-    Rel(rest_api, cert_svc, "")
-    Rel(rest_api, crl_svc, "")
-    Rel(rest_api, ocsp_svc, "")
-    Rel(cli, ca_svc, "")
-    Rel(cli, cert_svc, "")
-    Rel(cli, crl_svc, "")
-
-    Rel(ca_svc, crypto, "generate keypair, sign")
-    Rel(ca_svc, key_store, "store/load key")
-    Rel(ca_svc, db, "store/load CA cert")
-    Rel(cert_svc, crypto, "generate keypair")
-    Rel(cert_svc, ca_svc, "sign cert")
-    Rel(cert_svc, db, "store cert")
-    Rel(cert_svc, file_store, "store PEM")
-    Rel(crl_svc, key_store, "load CA key")
-    Rel(crl_svc, db, "get revoked")
-    Rel(ocsp_svc, crl_svc, "is_revoked")
-
-    Rel(crypto, drbg, "generate(n)")
-    Rel(drbg, trng, "get_entropy(32)")
-    Rel(self_tests, crypto, "KAT at startup")
+    crypto --> drbg
+    drbg --> trng
+    self_tests --> crypto
 ```
 
 ---

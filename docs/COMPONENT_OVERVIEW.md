@@ -1,13 +1,3 @@
----
-type: component-overview
-project: hw.pki-on-box
-date: 2026-04-10
-method: deep+reverse
-style: narrative
-components: 16
-layers: 6
----
-
 # Component Overview: анатомия PKI-on-Box
 
 ## Предисловие: шесть слоёв и одна идея
