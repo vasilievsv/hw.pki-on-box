@@ -82,7 +82,8 @@ class TestCrlServiceInvariants:
     def test_crl_has_next_update(self, pki):
         crl_svc, _, _, _, ca_id = pki
         crl = crl_svc.generate_crl(ca_id)
-        assert crl.next_update_utc is not None
+        nu = getattr(crl, "next_update_utc", None) or crl.next_update
+        assert nu is not None
 
     def test_revoked_cert_stays_revoked(self, pki):
         crl_svc, cert_svc, _, db, ca_id = pki

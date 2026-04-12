@@ -23,8 +23,17 @@ def drbg(trng, sw_cfg):
     return d
 
 
+def _hw_available():
+    try:
+        t = HardwareTRNG({"trng": {"mode": "auto"}})
+        return t.is_hardware_available()
+    except Exception:
+        return False
+
+
 class TestTrngDrbgPreconditions:
 
+    @pytest.mark.skipif(_hw_available(), reason="Hardware TRNG connected — skip no-device test")
     def test_rejects_hardware_mode_no_device(self):
         cfg = {"trng": {"mode": "hardware"}}
         with pytest.raises(TRNGDeviceError, match="Hardware TRNG not found"):
@@ -62,6 +71,7 @@ class TestTrngDrbgInvariants:
     def test_reseed_interval_bounded(self, drbg):
         assert drbg._reseed_interval <= 2**48
 
+    @pytest.mark.skipif(_hw_available(), reason="Hardware TRNG connected — fallback not used")
     def test_software_fallback_works_without_hardware(self, trng, drbg):
         assert trng.is_hardware_available() is False
         result = drbg.generate(32)
