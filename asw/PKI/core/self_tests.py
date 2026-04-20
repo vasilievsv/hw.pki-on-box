@@ -87,12 +87,13 @@ def _kat_hmac_drbg():
 
 def _kat_rsa_sign():
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-    data = b"KAT RSA test vector"
-    sig = key.sign(data, padding.PKCS1v15(), hashes.SHA256())
+    data = b"KAT RSA-PSS test vector"
+    pss = padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH)
+    sig = key.sign(data, pss, hashes.SHA256())
     try:
-        key.public_key().verify(sig, data, padding.PKCS1v15(), hashes.SHA256())
+        key.public_key().verify(sig, data, padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.AUTO), hashes.SHA256())
     except Exception:
-        raise CryptoSelfTestError("KAT RSA sign/verify FAILED")
+        raise CryptoSelfTestError("KAT RSA-PSS sign/verify FAILED")
 
 
 def _kat_ecdsa_sign():

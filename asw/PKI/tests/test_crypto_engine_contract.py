@@ -66,7 +66,8 @@ class TestCryptoEnginePostconditions:
         priv, pub = crypto.generate_rsa_keypair(bits=2048)
         data = b"contract test data"
         sig = crypto.sign_data(priv, data)
-        pub.verify(sig, data, padding.PKCS1v15(), hashes.SHA256())
+        pss = padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.AUTO)
+        pub.verify(sig, data, pss, hashes.SHA256())
 
     def test_ec_sign_verify_roundtrip(self, crypto):
         priv, pub = crypto.generate_ec_keypair()
@@ -92,9 +93,18 @@ class TestCryptoEngineInvariants:
         priv, pub = crypto.generate_rsa_keypair(bits=2048)
         data = b"invariant check"
         sig = crypto.sign_data(priv, data)
-        pub.verify(sig, data, padding.PKCS1v15(), hashes.SHA256())
+        pss = padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.AUTO)
+        pub.verify(sig, data, pss, hashes.SHA256())
         with pytest.raises(Exception):
-            pub.verify(sig, data, padding.PKCS1v15(), hashes.SHA1())
+            pub.verify(sig, data, pss, hashes.SHA1())
+
+    def test_rejects_pkcs1v15_signature(self, crypto):
+        priv, pub = crypto.generate_rsa_keypair(bits=2048)
+        data = b"invariant check"
+        pkcs_sig = priv.sign(data, padding.PKCS1v15(), hashes.SHA256())
+        pss = padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.AUTO)
+        with pytest.raises(Exception):
+            pub.verify(pkcs_sig, data, pss, hashes.SHA256())
 
     def test_openssl_seeded_from_drbg(self, crypto):
         assert crypto._drbg.initialized is True

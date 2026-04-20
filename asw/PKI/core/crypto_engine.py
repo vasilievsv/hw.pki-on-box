@@ -57,17 +57,12 @@ class CryptoEngine:
 
     def verify_certificate(self, cert: x509.Certificate) -> bool:
         try:
-            pub = cert.issuer
-            cert.public_key().verify(
-                cert.signature,
-                cert.tbs_certificate_bytes,
-                ec.ECDSA(hashes.SHA256())
-                if isinstance(cert.public_key(), ec.EllipticCurvePublicKey)
-                else padding.PKCS1v15(),
-                hashes.SHA256()
-                if not isinstance(cert.public_key(), ec.EllipticCurvePublicKey)
-                else None,
-            )
+            pub = cert.public_key()
+            params = cert.signature_algorithm_parameters
+            if isinstance(pub, ec.EllipticCurvePublicKey):
+                pub.verify(cert.signature, cert.tbs_certificate_bytes, params)
+            else:
+                pub.verify(cert.signature, cert.tbs_certificate_bytes, params, cert.signature_hash_algorithm)
             return True
         except Exception:
             return False
@@ -83,6 +78,7 @@ class CryptoEngine:
             sig = key.sign(data, ec.ECDSA(hashes.SHA256()))
             audit_log.info("sign_data algo=ECDSA-SHA256 data_len=%d", len(data))
             return sig
-        sig = key.sign(data, padding.PKCS1v15(), hashes.SHA256())
-        audit_log.info("sign_data algo=RSA-PKCS1v15-SHA256 data_len=%d", len(data))
+        pss = padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH)
+        sig = key.sign(data, pss, hashes.SHA256())
+        audit_log.info("sign_data algo=RSA-PSS-SHA256 data_len=%d", len(data))
         return sig
