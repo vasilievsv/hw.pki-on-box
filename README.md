@@ -4,11 +4,11 @@
 
 [![CI](https://github.com/vasilievsv/hw.pki-on-box/actions/workflows/ci.yml/badge.svg)](https://github.com/vasilievsv/hw.pki-on-box/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.6%2B-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/platform-ARM64%20%7C%20x86__64-lightgrey.svg)]()
 [![Hardware](https://img.shields.io/badge/hardware-RK3328%20%2B%20STM32-orange.svg)]()
 [![FIPS](https://img.shields.io/badge/FIPS%20140--2-educational-green.svg)]()
-[![Tests](https://img.shields.io/badge/tests-99%2B%20passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-153%2B%20passed-brightgreen.svg)]()
 [![Stars](https://img.shields.io/github/stars/vasilievsv/hw.pki-on-box?style=social)](https://github.com/vasilievsv/hw.pki-on-box)
 
 > ⚠️ **Research project** — исследование PKI, аппаратного TRNG, firmware hardening, SDD-контрактов и безопасности ядра Linux. Не проходил независимый аудит безопасности.
@@ -176,6 +176,7 @@ graph TB
 | Кастомное ядро 5.10 (SELinux + eBPF + USB2 PHY) | ✅ готово |
 | Валидация HW TRNG на железке (15.6 КБ/с) | ✅ готово |
 | BSW hardening (graceful degradation) | ✅ готово |
+| RSA-PSS (FIPS 186-5) + AllowedSigAlg facade | ✅ готово |
 
 ---
 
@@ -355,6 +356,7 @@ pip install -r deploy/requirements-rk3328.txt
 - NIST SP 800-90A (HMAC-DRBG)
 - NIST SP 800-90B (health tests источника энтропии)
 - FIPS 140-2 (KAT, зануление, Security Policy — учебный уровень)
+- FIPS 186-5 (RSA-PSS — обязательный padding для подписи)
 - ISO 26262 ASIL A (учебный уровень)
 - SDD / Design by Contract (верификация PKI host + firmware)
 
