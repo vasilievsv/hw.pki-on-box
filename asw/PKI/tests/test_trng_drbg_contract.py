@@ -77,6 +77,7 @@ class TestTrngDrbgInvariants:
         result = drbg.generate(32)
         assert result is not None and len(result) == 32
 
+    @pytest.mark.skipif(not _hw_available(), reason="Hardware TRNG not connected")
     def test_trng_entropy_health_check(self, trng):
         assert trng.health_check() is True
 
