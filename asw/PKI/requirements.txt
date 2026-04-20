@@ -1,4 +1,4 @@
-cryptography>=3.4
+cryptography>=41.0
 flask>=2.0
 requests>=2.25
 click>=8.0

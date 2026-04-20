@@ -47,6 +47,20 @@ CHECKS = [
         "check": "good_present",
     },
     {
+        "id": "CE-5", "phase": "crypto_engine", "severity": "CRITICAL",
+        "desc": "PKCS1v15 must not be used for signing (RSA-PSS required)",
+        "file": "core/crypto_engine.py",
+        "pattern_bad": r"PKCS1v15\(\)",
+        "check": "bad_absent",
+    },
+    {
+        "id": "CE-6", "phase": "crypto_engine", "severity": "HIGH",
+        "desc": "AllowedSigAlg facade must be imported",
+        "file": "core/crypto_engine.py",
+        "pattern_good": r"AllowedSigAlg",
+        "check": "good_present",
+    },
+    {
         "id": "KS-1", "phase": "key_storage", "severity": "CRITICAL",
         "desc": "Private keys must be encrypted with AES-256",
         "file": "core/key_storage.py",

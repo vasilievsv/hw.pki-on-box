@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
@@ -6,6 +7,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa, ec, padding
 from cryptography.hazmat.primitives.asymmetric.ec import SECP384R1
 from cryptography.hazmat.bindings.openssl.binding import Binding
 
+from .allowed_algorithms import AllowedSigAlg, RSA_PSS_SHA256, ECDSA_SHA256
 from .drbg import NISTDRBG
 
 audit_log = logging.getLogger("pki.crypto_engine")
@@ -57,17 +59,12 @@ class CryptoEngine:
 
     def verify_certificate(self, cert: x509.Certificate) -> bool:
         try:
-            pub = cert.issuer
-            cert.public_key().verify(
-                cert.signature,
-                cert.tbs_certificate_bytes,
-                ec.ECDSA(hashes.SHA256())
-                if isinstance(cert.public_key(), ec.EllipticCurvePublicKey)
-                else padding.PKCS1v15(),
-                hashes.SHA256()
-                if not isinstance(cert.public_key(), ec.EllipticCurvePublicKey)
-                else None,
-            )
+            pub = cert.public_key()
+            params = cert.signature_algorithm_parameters
+            if isinstance(pub, ec.EllipticCurvePublicKey):
+                pub.verify(cert.signature, cert.tbs_certificate_bytes, params)
+            else:
+                pub.verify(cert.signature, cert.tbs_certificate_bytes, params, cert.signature_hash_algorithm)
             return True
         except Exception:
             return False
@@ -78,11 +75,9 @@ class CryptoEngine:
 
     # -- signing --------------------------------------------------------------
 
-    def sign_data(self, key, data: bytes) -> bytes:
-        if isinstance(key, ec.EllipticCurvePrivateKey):
-            sig = key.sign(data, ec.ECDSA(hashes.SHA256()))
-            audit_log.info("sign_data algo=ECDSA-SHA256 data_len=%d", len(data))
-            return sig
-        sig = key.sign(data, padding.PKCS1v15(), hashes.SHA256())
-        audit_log.info("sign_data algo=RSA-PKCS1v15-SHA256 data_len=%d", len(data))
+    def sign_data(self, key, data: bytes, alg: Optional[AllowedSigAlg] = None) -> bytes:
+        if alg is None:
+            alg = ECDSA_SHA256 if isinstance(key, ec.EllipticCurvePrivateKey) else RSA_PSS_SHA256
+        sig = key.sign(data, *alg.sign_args)
+        audit_log.info("sign_data algo=%s data_len=%d", alg.name, len(data))
         return sig

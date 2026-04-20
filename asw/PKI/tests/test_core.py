@@ -30,7 +30,8 @@ def test_rsa_keypair_sign_verify(core):
     key, pub = crypto.generate_rsa_keypair(bits=2048)
     data = b"test payload"
     sig = crypto.sign_data(key, data)
-    pub.verify(sig, data, padding.PKCS1v15(), hashes.SHA256())
+    pss = padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.AUTO)
+    pub.verify(sig, data, pss, hashes.SHA256())
 
 
 def test_ec_keypair_sign_verify(core):
