@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
@@ -6,6 +7,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa, ec, padding
 from cryptography.hazmat.primitives.asymmetric.ec import SECP384R1
 from cryptography.hazmat.bindings.openssl.binding import Binding
 
+from .allowed_algorithms import AllowedSigAlg, RSA_PSS_SHA256, ECDSA_SHA256
 from .drbg import NISTDRBG
 
 audit_log = logging.getLogger("pki.crypto_engine")
@@ -73,12 +75,9 @@ class CryptoEngine:
 
     # -- signing --------------------------------------------------------------
 
-    def sign_data(self, key, data: bytes) -> bytes:
-        if isinstance(key, ec.EllipticCurvePrivateKey):
-            sig = key.sign(data, ec.ECDSA(hashes.SHA256()))
-            audit_log.info("sign_data algo=ECDSA-SHA256 data_len=%d", len(data))
-            return sig
-        pss = padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH)
-        sig = key.sign(data, pss, hashes.SHA256())
-        audit_log.info("sign_data algo=RSA-PSS-SHA256 data_len=%d", len(data))
+    def sign_data(self, key, data: bytes, alg: Optional[AllowedSigAlg] = None) -> bytes:
+        if alg is None:
+            alg = ECDSA_SHA256 if isinstance(key, ec.EllipticCurvePrivateKey) else RSA_PSS_SHA256
+        sig = key.sign(data, *alg.sign_args)
+        audit_log.info("sign_data algo=%s data_len=%d", alg.name, len(data))
         return sig
