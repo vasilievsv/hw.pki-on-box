@@ -90,8 +90,11 @@ def _kat_rsa_sign():
     data = b"KAT RSA-PSS test vector"
     pss = padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH)
     sig = key.sign(data, pss, hashes.SHA256())
+    pss_verify = padding.PSS(
+        mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.AUTO
+    )
     try:
-        key.public_key().verify(sig, data, padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.AUTO), hashes.SHA256())
+        key.public_key().verify(sig, data, pss_verify, hashes.SHA256())
     except Exception:
         raise CryptoSelfTestError("KAT RSA-PSS sign/verify FAILED")
 
